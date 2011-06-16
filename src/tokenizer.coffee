@@ -104,11 +104,11 @@ tokenize = (text) ->
     else if match = text.match /^(\r\n|\r|\n)/
       # Proceed to a new logical and physical line.
       line_index++
-      lines.push line
+      if line.length then lines.push line
       line = []
     else if match = text.match /^,/
       # Consider the rest of the physical line a new logical line.
-      lines.push line
+      if line.length then lines.push line
       line = []
     else if match = text.match /^(\u2026|\.\.\.)[ \t\v]*(\r\n|\r|\n)/
       # Continue the next physical line on the current logical line.
