@@ -5,6 +5,7 @@ class TokenizeError extends Error
 
 class Token
   constructor: (@text, @line) ->
+class LineEndToken extends Token
 class KeywordToken extends Token
 class IdentifierToken extends Token
 class LiteralToken extends Token
@@ -91,12 +92,18 @@ STRING_REGEX = ///
   "                  # Ending string quote.
 ///
 
-# Splits a LOLCODE source code string into an array of logical lines, each line
-# an array of tokens.
+# Splits a LOLCODE source code string into a list of tokens.
 tokenize = (text) ->
-  lines = []
+  tokens = []
   line = []
   line_index = 1
+
+  # Flushes the current line to the tokens list.
+  flushLine = ->
+    if line.length
+      tokens = tokens.concat line
+      tokens.push new LineEndToken '\n', line_index
+    line = []
 
   while text
     if match = text.match /^[ \t\v]+/
@@ -104,12 +111,10 @@ tokenize = (text) ->
     else if match = text.match /^(\r\n|\r|\n)/
       # Proceed to a new logical and physical line.
       line_index++
-      if line.length then lines.push line
-      line = []
+      flushLine()
     else if match = text.match /^,/
       # Consider the rest of the physical line a new logical line.
-      if line.length then lines.push line
-      line = []
+      flushLine()
     else if match = text.match /^(\u2026|\.\.\.)[ \t\v]*(\r\n|\r|\n)/
       # Continue the next physical line on the current logical line.
       line_index++
@@ -137,15 +142,16 @@ tokenize = (text) ->
 
     text = text[match[0].length..]
 
-  if line.length then lines.push line
+  flushLine()
 
-  return lines
+  return tokens
 
 # Exports.
 window.LOLCoffee.Tokenizer =
   tokenize: tokenize
   TokenizeError: TokenizeError
   Token: Token
+  LineEndToken: LineEndToken
   KeywordToken: IdentifierToken
   LiteralToken: LiteralToken
   IntToken: IntToken
