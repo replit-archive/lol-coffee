@@ -3,15 +3,15 @@ class TokenizeError extends Error
     @name = 'TokenizeError'
     @message = "Line #{line}: #{message}."
 
+TOKEN_TYPES: ['endline', 'keyword', 'identifier', 'int', 'float', 'string']
+
 class Token
-  constructor: (@text, @line) ->
-class LineEndToken extends Token
-class KeywordToken extends Token
-class IdentifierToken extends Token
-class LiteralToken extends Token
-class IntToken extends LiteralToken
-class FloatToken extends LiteralToken
-class StringToken extends LiteralToken
+  constructor: (@type, @text, @line) ->
+    if type not in TOKEN_TYPES
+      throw new TokenizeError line, 'Invalid token type: ' + type
+
+  is: (type, text) ->
+    return @type == type and (text is undefined or @text == text)
 
 # All LOLCODE keywords in longer-first order to ensure correct greedy capture.
 KEYWORDS = [
@@ -102,7 +102,7 @@ tokenize = (text) ->
   flushLine = ->
     if line.length
       tokens = tokens.concat line
-      tokens.push new LineEndToken '\n', line_index
+      tokens.push new Token 'endline', '\n', line_index
     line = []
 
   while text
@@ -127,15 +127,15 @@ tokenize = (text) ->
       # Ignore multi-line comment.
     else if match = text.match KEYWORD_REGEX
       keyword = match[0].replace /\s+/g, ' '
-      line.push new KeywordToken match[0], line_index
+      line.push new Token 'keyword', match[0], line_index
     else if match = text.match /^[a-zA-Z]\w*/
-      line.push new IdentifierToken match[0], line_index
+      line.push new Token 'identifier', match[0], line_index
     else if match = text.match /^-?(\d+\.\d*|\d*\.\d+)/
-      line.push new FloatToken match[0], line_index
+      line.push new Token 'float', match[0], line_index
     else if match = text.match /^-?\d+/
-      line.push new IntToken match[0], line_index
+      line.push new Token 'int', match[0], line_index
     else if match = text.match /^"(:([)>o":]|\([\dA-Fa-f]+\))|[^"])*"/
-      line.push new StringToken match[0], line_index
+      line.push new Token 'string', match[0], line_index
     else
       snippet = text.match(/^.*/)[0]
       throw new TokenizeError line_index, 'Unrecognized sequence at: ' + snippet
@@ -151,9 +151,3 @@ window.LOLCoffee.Tokenizer =
   tokenize: tokenize
   TokenizeError: TokenizeError
   Token: Token
-  LineEndToken: LineEndToken
-  KeywordToken: IdentifierToken
-  LiteralToken: LiteralToken
-  IntToken: IntToken
-  FloatToken: FloatToken
-  StringToken: StringToken
