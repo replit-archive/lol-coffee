@@ -8,7 +8,12 @@
     <script type="text/javascript">
       function tokenize() {
         var src = document.getElementsByTagName('textarea')[0].value;
-        prettyprinted = JSConsole.inspect(LOLCoffee.Tokenizer.tokenize(src));
+        try {
+          result = LOLCoffee.Tokenizer.tokenize(src);
+          prettyprinted = JSConsole.inspect(result);
+        } catch (e) {
+          prettyprinted = e;
+        }
         document.getElementsByTagName('textarea')[1].value = prettyprinted;
       }
     </script>

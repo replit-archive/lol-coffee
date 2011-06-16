@@ -1,6 +1,6 @@
-class ParseError extends Error
+class TokenizeError extends Error
   constructor: (line, message) ->
-    @name = 'ParseError'
+    @name = 'TokenizeError'
     @message = "Line #{line}: #{message}."
 
 class Token
@@ -117,8 +117,8 @@ tokenize = (text) ->
       # Ignore single-line comment.
     else if match = text.match /^OBTW\b[^]*\bTLDR\b/
       if line.length
-        throw new ParseError line_index,
-                             'Multi-line comments must start on their own line'
+        throw new TokenizeError line_index,
+                                'Multi-line comments must start on a new line'
       # Ignore multi-line comment.
     else if match = text.match KEYWORD_REGEX
       keyword = match[0].replace /\s+/g, ' '
@@ -132,8 +132,8 @@ tokenize = (text) ->
     else if match = text.match /^"(:([)>o":]|\([\dA-Fa-f]+\))|[^"])*"/
       line.push new StringToken match[0], line_index
     else
-      snippet = text.match /^.*/
-      throw new ParseError line_index, 'Unrecognized sequence at: ' + snippet[0]
+      snippet = text.match(/^.*/)[0]
+      throw new TokenizeError line_index, 'Unrecognized sequence at: ' + snippet
 
     text = text[match[0].length..]
 
@@ -144,7 +144,7 @@ tokenize = (text) ->
 # Exports.
 window.LOLCoffee.Tokenizer =
   tokenize: tokenize
-  ParseError: ParseError
+  TokenizeError: TokenizeError
   Token: Token
   KeywordToken: IdentifierToken
   LiteralToken: LiteralToken
