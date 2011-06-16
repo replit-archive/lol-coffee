@@ -3,10 +3,10 @@ class TokenizeError extends Error
     @name = 'TokenizeError'
     @message = "Line #{line}: #{message}."
 
-TOKEN_TYPES: ['endline', 'keyword', 'identifier', 'int', 'float', 'string']
+TOKEN_TYPES = ['endline', 'keyword', 'identifier', 'int', 'float', 'string']
 
 class Token
-  constructor: (@type, @text, @line) ->
+  constructor: (@line, @type, @text = '') ->
     if type not in TOKEN_TYPES
       throw new TokenizeError line, 'Invalid token type: ' + type
 
@@ -102,7 +102,7 @@ tokenize = (text) ->
   flushLine = ->
     if line.length
       tokens = tokens.concat line
-      tokens.push new Token 'endline', '\n', line_index
+      tokens.push new Token line_index, 'endline'
     line = []
 
   while text
@@ -127,15 +127,15 @@ tokenize = (text) ->
       # Ignore multi-line comment.
     else if match = text.match KEYWORD_REGEX
       keyword = match[0].replace /\s+/g, ' '
-      line.push new Token 'keyword', match[0], line_index
+      line.push new Token line_index, 'keyword', match[0]
     else if match = text.match /^[a-zA-Z]\w*/
-      line.push new Token 'identifier', match[0], line_index
+      line.push new Token line_index, 'identifier', match[0]
     else if match = text.match /^-?(\d+\.\d*|\d*\.\d+)/
-      line.push new Token 'float', match[0], line_index
+      line.push new Token line_index, 'float', match[0]
     else if match = text.match /^-?\d+/
-      line.push new Token 'int', match[0], line_index
+      line.push new Token line_index, 'int', match[0]
     else if match = text.match /^"(:([)>o":]|\([\dA-Fa-f]+\))|[^"])*"/
-      line.push new Token 'string', match[0], line_index
+      line.push new Token line_index, 'string', match[0]
     else
       snippet = text.match(/^.*/)[0]
       throw new TokenizeError line_index, 'Unrecognized sequence at: ' + snippet
@@ -149,5 +149,5 @@ tokenize = (text) ->
 # Exports.
 window.LOLCoffee.Tokenizer =
   tokenize: tokenize
-  TokenizeError: TokenizeError
+  Error: TokenizeError
   Token: Token
