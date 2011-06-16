@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>lol-coffee test</title>
+    <script src="console.js" type="text/javascript"></script>
+    <script src="../src/base.js" type="text/javascript"></script>
+    <script src="../src/tokenizer.js" type="text/javascript"></script>
+    <script type="text/javascript">
+      function tokenize() {
+        var src = document.getElementsByTagName('textarea')[0].value;
+        prettyprinted = JSConsole.inspect(LOLCoffee.Tokenizer.tokenize(src));
+        document.getElementsByTagName('textarea')[1].value = prettyprinted;
+      }
+    </script>
+  </head>
+  <body>
+    <textarea rows="30" cols="80"></textarea>
+    <br />
+    <button onclick="tokenize();">Tokenize</button>
+    <br />
+    <textarea rows="30" cols="80"></textarea>
+  </body>
+</html>
