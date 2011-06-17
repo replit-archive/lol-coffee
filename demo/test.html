@@ -5,24 +5,44 @@
     <script src="console.js" type="text/javascript"></script>
     <script src="../src/base.js" type="text/javascript"></script>
     <script src="../src/tokenizer.js" type="text/javascript"></script>
+    <script src="../src/parser.js" type="text/javascript"></script>
     <script type="text/javascript">
-      function tokenize() {
-        var src = document.getElementsByTagName('textarea')[0].value;
+      function parse() {
+        document.getElementById('tokenized').value = '';
+        document.getElementById('parsed').value = '';
+
+        var src = document.getElementById('src').value;
+
         try {
-          result = LOLCoffee.Tokenizer.tokenize(src);
-          prettyprinted = JSConsole.inspect(result);
+          var tokenized = LOLCoffee.Tokenizer.tokenize(src);
         } catch (e) {
-          prettyprinted = e;
+          document.getElementById('tokenized').value = e;
+          // Re-trigger the error to get a stack trace in the console.
+          LOLCoffee.Tokenizer.tokenize(src);
         }
-        document.getElementsByTagName('textarea')[1].value = prettyprinted;
+        document.getElementById('tokenized').value = inspect(tokenized);
+
+        try {
+          var parsed = new LOLCoffee.Parser(tokenized).parseProgram();
+        } catch (e) {
+          document.getElementById('parsed').value = e;
+          // Re-trigger the error to get a stack trace in the console.
+          new LOLCoffee.Parser(tokenized).parseProgram();
+        }
+        document.getElementById('parsed').value = inspect(parsed, false, 999);
       }
     </script>
   </head>
   <body>
-    <textarea rows="30" cols="80"></textarea>
-    <br />
-    <button onclick="tokenize();">Tokenize</button>
-    <br />
-    <textarea rows="30" cols="80"></textarea>
+    <div style="text-align: center">
+      <textarea id="src" style="width: 49%; height: 25em">
+HAI
+VISIBLE "Example"
+KTHXBYE
+      </textarea>
+      <textarea id="tokenized" style="width: 49%; height: 25em"></textarea>
+      <button onclick="parse();">Parse</button>
+      <textarea id="parsed" style="width: 99%; height: 25em"></textarea>
+    </div>
   </body>
 </html>
