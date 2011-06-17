@@ -19,8 +19,6 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-
-
 /**
  * Echos the value of a value. Trys to print the value out
  * in the best way possible given the different types.
@@ -29,84 +27,30 @@
  * @param {Boolean} showHidden Flag that shows hidden (not enumerable)
  *    properties of objects.
  * @param {Number} depth Depth in which to descend in object. Default is 2.
- * @param {Boolean} colors Flag to turn on ANSI escape codes to color the
- *    output. Default is false (no coloring).
  */
-JSConsole = (function(){
 
-var MAX_COLUMNS = 50;
-inspect = function(obj, showHidden, depth, colors) {
+(function(){
+
+var MAX_COLUMNS = 80;
+
+inspect = function(obj, showHidden, depth) {
   var seen = [];
 
-  var stylize = function(str, styleType) {
-    // http://en.wikipedia.org/wiki/ANSI_escape_code#graphics
-    var styles =
-        { 'bold' : [1, 22],
-          'italic' : [3, 23],
-          'underline' : [4, 24],
-          'inverse' : [7, 27],
-          'white' : [37, 39],
-          'grey' : [90, 39],
-          'black' : [30, 39],
-          'blue' : [34, 39],
-          'cyan' : [36, 39],
-          'green' : [32, 39],
-          'magenta' : [35, 39],
-          'red' : [31, 39],
-          'yellow' : [33, 39] };
-
-    var style =
-        { 'special': 'cyan',
-          'number': 'blue',
-          'boolean': 'yellow',
-          'undefined': 'grey',
-          'null': 'bold',
-          'string': 'green',
-          'date': 'magenta',
-          // "name": intentionally not styling
-          'regexp': 'red' }[styleType];
-
-    if (style) {
-      return '\033[' + styles[style][0] + 'm' + str +
-             '\033[' + styles[style][1] + 'm';
-    } else {
-      return str;
-    }
-  };
-  if (! colors) {
-    stylize = function(str, styleType) { return str; };
-  }
-
   function format(value, recurseTimes) {
-    // Provide a hook for user-specified inspect functions.
-    // Check that value is an object with an inspect function on it
-    if (value && typeof value.inspect === 'function' &&
-        // Also filter out any prototype objects using the circular check.
-        !(value.constructor && value.constructor.prototype === value)) {
-      return value.inspect(recurseTimes);
-    }
-
     // Primitive types cannot have properties
     switch (typeof value) {
       case 'undefined':
-        return stylize('undefined', 'undefined');
-
+        return 'undefined';
       case 'string':
-        var simple = '\'' + JSON.stringify(value).replace(/^"|"$/g, '')
-                                                 .replace(/'/g, "\\'")
-                                                 .replace(/\\"/g, '"') + '\'';
-        return stylize(simple, 'string');
-
+        return '\'' + JSON.stringify(value).replace(/^"|"$/g, '')
+                                           .replace(/'/g, "\\'")
+                                           .replace(/\\"/g, '"') + '\'';
       case 'number':
-        return stylize('' + value, 'number');
-
       case 'boolean':
-        return stylize('' + value, 'boolean');
+        return String(value);
     }
     // For some reason typeof null is "object", so special case here.
-    if (value === null) {
-      return stylize('null', 'null');
-    }
+    if (value === null) return 'null';
 
     // Look up the keys of the object.
     var visible_keys = Object.keys(value);
@@ -115,16 +59,16 @@ inspect = function(obj, showHidden, depth, colors) {
     // Functions without properties can be shortcutted.
     if (typeof value === 'function' && keys.length === 0) {
       if (isRegExp(value)) {
-        return stylize('' + value, 'regexp');
+        return String(value);
       } else {
         var name = value.name ? ': ' + value.name : '';
-        return stylize('[Function' + name + ']', 'special');
+        return '[Function' + name + ']';
       }
     }
 
     // Dates without properties can be shortcutted
     if (isDate(value) && keys.length === 0) {
-      return stylize(value.toUTCString(), 'date');
+      return value.toUTCString();
     }
 
     var base, type, braces;
@@ -134,7 +78,13 @@ inspect = function(obj, showHidden, depth, colors) {
       braces = ['[', ']'];
     } else {
       type = 'Object';
-      braces = ['{', '}'];
+      if (value.constructor) {
+        var cls = value.constructor.toString();
+        cls = cls.substring(cls.indexOf('function ') + 9, cls.indexOf('('));
+        braces = [cls + '{', '}'];
+      } else {
+        braces = ['{', '}'];
+      }
     }
 
     // Make functions say that they are functions
@@ -156,9 +106,9 @@ inspect = function(obj, showHidden, depth, colors) {
 
     if (recurseTimes < 0) {
       if (isRegExp(value)) {
-        return stylize('' + value, 'regexp');
+        return String(value);
       } else {
-        return stylize('[Object]', 'special');
+        return '[Object]';
       }
     }
 
@@ -169,13 +119,13 @@ inspect = function(obj, showHidden, depth, colors) {
       if (value.__lookupGetter__) {
         if (value.__lookupGetter__(key)) {
           if (value.__lookupSetter__(key)) {
-            str = stylize('[Getter/Setter]', 'special');
+            str = '[Getter/Setter]';
           } else {
-            str = stylize('[Getter]', 'special');
+            str = '[Getter]';
           }
         } else {
           if (value.__lookupSetter__(key)) {
-            str = stylize('[Setter]', 'special');
+            str = '[Setter]';
           }
         }
       }
@@ -201,7 +151,7 @@ inspect = function(obj, showHidden, depth, colors) {
             }
           }
         } else {
-          str = stylize('[Circular]', 'special');
+          str = '[Circular]';
         }
       }
       if (typeof name === 'undefined') {
@@ -211,12 +161,10 @@ inspect = function(obj, showHidden, depth, colors) {
         name = JSON.stringify('' + key);
         if (name.match(/^"([a-zA-Z_][a-zA-Z_0-9]*)"$/)) {
           name = name.substr(1, name.length - 2);
-          name = stylize(name, 'name');
         } else {
           name = name.replace(/'/g, "\\'")
                      .replace(/\\"/g, '"')
                      .replace(/(^"|"$)/g, "'");
-          name = stylize(name, 'string');
         }
       }
 
