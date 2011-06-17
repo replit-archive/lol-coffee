@@ -6,7 +6,7 @@ class Node
 class Program extends Node
   constructor: (@body) ->
 
-class Function extends Node
+class FunctionDefinition extends Node
   constructor: (@name, @args, @body) ->
 
 class Statement extends Node
@@ -61,7 +61,7 @@ class StringLiteral extends Literal
 window.LOLCoffee.AST =
   Node: Node
   Program: Program
-  Function: Function
+  FunctionDefinition: FunctionDefinition
   Statement: Statement
   Return: Return
   Input: Input

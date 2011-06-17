@@ -63,7 +63,7 @@ class Parser
     # Tail.
     @_consume 'keyword', 'IF U SAY SO'
 
-    return new AST.Function name, args, body
+    return new AST.FunctionDefinition name, args, body
 
   # FunctionArgs ::= ["YR" IDENTIFIER ("AN" "YR" IDENTIFIER)*]
   parseFunctionArgs: ->
@@ -171,9 +171,17 @@ class Parser
       operation = @_consume()
       @_consume 'keyword', 'YR'
       variable = @_consume 'identifier'
-
-      # TODO(max99x): Convert operation+variable into an Expression.
-      #               Account for UPPIN, NERFIN.
+      variable_exp = new AST.IdentifierExpression variable
+      expression = switch operation
+        when 'UPPIN'
+          new AST.BinaryExpression 'SUM OF', variable_exp, new AST.IntLiteral 1
+        when 'NERFIN'
+          new AST.BinaryExpression 'DIFF OF', variable_exp, new AST.IntLiteral 1
+        else
+          unless @function_arities[operation] is 1
+            @_error 'Loop operation must be UPPIN, NERFIN or a unary function'
+          new AST.CallExpression operation, [variable_exp]
+      operation = new AST.Assignment variable, expression
 
       unless @_nextIs 'endline'
         # Condition.
@@ -336,19 +344,19 @@ class Parser
     if @_nextIs 'string'
       return @_createStringLiteral @_consume()
     else if @_nextIs 'int'
-      return new AST.IntLiteral @_consume()
+      return new AST.IntLiteral parseInt @_consume(), 10
     else if @_nextIs 'float'
-      return new AST.FloatLiteral @_consume()
+      return new AST.FloatLiteral parseFloat @_consume()
     else if @_nextIs 'keyword'
       token = @_consume()
       if token in ['WIN', 'FAIL']
-        return new AST.BoolLiteral token
+        return new AST.BoolLiteral token == 'WIN'
       else if token is 'NOOB'
         return new AST.NullLiteral
       else
         @_error 'Unexpected keyword while parsing literal', token.line
     else
-      @_error 'Could not parse literal', token.line
+      @_error 'Could not parse literal'
 
   # FunctionCall ::= IDENTIFIER Expression{arity}
   parseFunctionCall: ->
