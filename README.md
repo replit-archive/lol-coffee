@@ -1,10 +1,10 @@
 #LOLCoffee
 
-A REPL-friendly LOLCODE compiler and virtual machine written in CoffeeScript.
+A REPL-friendly LOLCode compiler and virtual machine written in CoffeeScript.
 Implements the LOLCode 1.2 spec, except for the following changes:
 
 1. Empty statements are allowed after ellipses.
-2. BUKKIT is a reserved word.
+2. `BUKKIT` is a reserved word.
 
 Planned but still unimplemented deviations from the standard are:
 
