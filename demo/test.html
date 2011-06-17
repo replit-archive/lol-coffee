@@ -5,14 +5,15 @@
     <script src="console.js" type="text/javascript"></script>
     <script src="../src/base.js" type="text/javascript"></script>
     <script src="../src/tokenizer.js" type="text/javascript"></script>
+    <script src="../src/ast.js" type="text/javascript"></script>
     <script src="../src/parser.js" type="text/javascript"></script>
     <script type="text/javascript">
       function parse() {
         document.getElementById('tokenized').value = '';
         document.getElementById('parsed').value = '';
-
         var src = document.getElementById('src').value;
 
+        // Tokenize.
         try {
           var tokenized = LOLCoffee.Tokenizer.tokenize(src);
         } catch (e) {
@@ -22,6 +23,7 @@
         }
         document.getElementById('tokenized').value = inspect(tokenized);
 
+        // Parse.
         try {
           var parsed = new LOLCoffee.Parser(tokenized).parseProgram();
         } catch (e) {
@@ -36,8 +38,209 @@
   <body>
     <div style="text-align: center">
       <textarea id="src" style="width: 49%; height: 25em">
-HAI
-VISIBLE "Example"
+OBTW
+  Tests from http://asgaard.co.uk/misc/loljs/
+  Copyright (c) &lt;2010&gt;, Mark Watkinson
+  All rights reserved.
+  Used under the BSD license.
+TLDR
+
+HAI 1.2
+
+BTW Test 1 - Square Root
+  I HAS A NUMBER
+  GIMMEH NUMBER
+  NUMBER IS NOW A NUMBAR
+  I HAS A IMAGINARY ITZ FAIL
+
+  DIFFRINT NUMBER AN BIGGR OF NUMBER AN 0.0, O RLY?
+    YA RLY
+        NUMBER R PRODUKT OF NUMBER AN -1
+        IMAGINARY R WIN
+  OIC
+
+  I HAS A X_N ITZ 10
+  I HAS A LIMIT ITZ 100
+  I HAS A COUNTER ITZ 0
+  IM IN YR LOOP UPPIN YR COUNTER WILE DIFFRINT COUNTER AN BIGGR OF COUNTER AN LIMIT
+    I HAS A TERM ITZ QUOSHUNT OF NUMBER AN X_N
+    TERM R SUM OF X_N AN TERM
+    TERM R QUOSHUNT OF TERM AN 2
+    X_N R TERM
+    IM OUTTA YR LOOP
+
+  BOTH SAEM IMAGINARY AN WIN, O RLY?
+    YA RLY
+      BOTH SAEM 1 AN X_N, O RLY? 
+        YA RLY
+          X_N R "i"
+        NO WAI
+          X_N R SMOOSH "(" AN X_N AN "i)" MKAY
+    OIC
+  OIC
+
+  VISIBLE SMOOSH "sqrt(" AN NUMBER AN ") ~ ±" AN X_N
+
+BTW Test 2 - Strings
+  BTW we're going to look at some escape sequences
+  I HAS A VAR ITZ 12
+  BTW interpolation
+  I HAS A STR ITZ "MY VAR IS :{VAR}"
+  VISIBLE STR
+  BTW unicode
+  VISIBLE "---"
+  VISIBLE "I LIKE :(03C0)"
+
+  BTW escaping works by the : character.
+  BTW escaping a quote:
+  VISIBLE "---"
+  VISIBLE "I SAID :"hello:" to him"
+  BTW escaping newlines, and tabs
+  VISIBLE "---"
+  VISIBLE "I SAID:):>:"hello:":)to him"
+
+BTW Test 2 - Operators
+  BTW operators use prefix notation which looks like this:
+  I HAS A X
+  BTW (1*2) + (3/4)
+  X R SUM OF PRODUKT OF 1 AN 2 AN QUOSHUNT OF 3 AN 4
+  VISIBLE "X IS :{X}"
+
+
+  BTW there are also some infinite arity operators (terminated by MKAY):
+  BTW here we nest the nary ANY OF inside the binary BOTH SAEM
+
+  VISIBLE BOTH SAEM ANY OF WIN AN FAIL AN FAIL AN FAIL MKAY AN WIN
+
+  BTW we can define our own functions which work a lot like operators
+  BTW we can nest function calls inside operator expressions:
+  BTW define an XOR
+  HOW DUZ I XOR YR ARG1 AN YR ARG2
+    I HAS A X ITZ NOT BOTH SAEM ARG1 AN ARG2
+    X R BOTH OF X AN EITHER OF ARG1 AN ARG2
+    FOUND YR X
+  IF U SAY SO
+
+  BTW SMOOSH is an infinite arity concatenation operator
+  VISIBLE SMOOSH "XOR 1 AN 0 = " AN XOR 1 0 MKAY
+
+  BTW now we use the function in a more complex expression:
+  BTW this reads: 'xor(0+1, 0) + 2' = 3
+  VISIBLE SUM OF XOR SUM OF 0 AN 1 0 AN 2
+
+BTW Test 4 - Functions
+  HOW DUZ I ADD YR NUM1 AN YR NUM2
+    SUM OF NUM1 AN NUM2
+  IF U SAY SO
+
+
+  HOW DUZ I DIVIDE YR NUM1 AN YR NUM2
+    I HAS A ANSWER ITZ QUOSHUNT OF NUM1 AN NUM2
+    FOUND YR ANSWER
+  IF U SAY SO
+
+
+  BTW let's use the function:
+  I HAS A NUMBER ITZ DIVIDE 20 10
+  VISIBLE NUMBER
+  NUMBER R ADD 20 10
+  VISIBLE NUMBER
+
+BTW Test 5 - If conditions
+  I HAS A ANIMAL
+  GIMMEH ANIMAL
+  BOTH SAEM ANIMAL AN "CAT", O RLY?
+    YA RLY
+      VISIBLE "J00 HAV A CAT"
+    MEBBE BOTH SAEM ANIMAL AN "MAUS"
+      VISIBLE "NOM NOM NOM. I EATED IT."
+    NO WAI
+      VISIBLE "J00 SUX"
+  OIC
+
+BTW Test 6 - Iterative Fibonacci
+  I HAS A TARGET ITZ 100
+  I HAS A COUNTER ITZ 2
+  I HAS A NUMBR1 ITZ 0
+  I HAS A NUMBR2 ITZ 1
+  VISIBLE SMOOSH 0 ":: " NUMBR1
+  VISIBLE SMOOSH 1 ":: " NUMBR2
+  IM IN YR LOOP UPPIN YR COUNTER TIL BOTH SAEM COUNTER AN TARGET
+    I HAS A NUMBR_TMP ITZ SUM OF NUMBR1 AN NUMBR2
+    NUMBR1 R NUMBR2
+    NUMBR2 R NUMBR_TMP
+    VISIBLE SMOOSH COUNTER ":: " NUMBR_TMP
+  IM OUTTA YR LOOP
+
+BTW Test 7 - Recursive Factorial
+  HOW DUZ I FACTORIAL YR NUMBER
+    BOTH SAEM 0 AN BIGGR OF NUMBER AN 0, O RLY?
+      YA RLY
+        FOUND YR 1
+      NO WAI
+        FOUND YR PRODUKT OF NUMBER AN FACTORIAL DIFF OF NUMBER AN 1
+    OIC
+  IF U SAY SO
+
+
+  I HAS A NUMBER
+  GIMMEH NUMBER
+  NUMBER IS NOW A NUMBR BTW WE JUST CASTED TO NUMBER
+  BTW WE GOTTA CHECK ITS BIGGR THAN 0 BECOZ FACTORIAL ISNT DEFINED FOR LESS THAN 0 OMG
+  BOTH SAEM 0 AN BIGGR OF NUMBER AN 0, O RLY?
+    YA RLY
+      NUMBER R 0
+  OIC
+
+  NUMBER R FACTORIAL NUMBER
+  VISIBLE SMOOSH "I FOUND UR FACTORIAL ITS " NUMBER 
+
+BTW Test 8 - PI Calculation
+  OBTW WE'RE GOING TO CALCULATE PI TODAY USING AN APPROXIMATION ALGORITHM CONSISTING OF CALCULATING THE SUM OF
+    THE FOLLOWING SERIES:
+
+    4 * SUM OF  [   (-1)^k            k ∈ N 
+                    2*k + 1   ]
+
+    WE GO UP TO K=1000
+  TLDR
+
+  I HAS A LIMIT ITZ 1000
+  I HAS A K ITZ 0
+  I HAS A PI_APPROXIMATION ITZ 0
+
+  IM IN YR LOOP UPPIN YR K WILE NOT BOTH SAEM K AN LIMIT
+    I HAS A NUMERATOR
+    I HAS A EVEN ITZ MOD OF K AN 2
+    NOT EVEN, O RLY?
+      YA RLY, NUMERATOR R 1
+      NO WAI, NUMERATOR R -1
+    OIC
+    I HAS A DENOMINATOR ITZ PRODUKT OF 2 AN K
+    DENOMINATOR R SUM OF DENOMINATOR AN 1
+    I HAS A TERM ITZ QUOSHUNT OF NUMERATOR AN DENOMINATOR
+    PI_APPROXIMATION R SUM OF PI_APPROXIMATION AN TERM
+  IM OUTTA YR LOOP
+  PI_APPROXIMATION R PRODUKT OF PI_APPROXIMATION AN 4
+  VISIBLE "PI IS "!
+  VISIBLE PI_APPROXIMATION
+
+BTW Test 9 - Switch Case
+  I HAS A COLOR ITZ "GREEN"
+  COLOR, WTF?
+    OMG "R"
+      VISIBLE "RED FISH"
+      GTFO
+    OMG "Y"
+      VISIBLE "YELLOW FISH"
+    OMG "G"
+    OMG "B"
+      VISIBLE "FISH HAS A FLAVOR"
+      GTFO
+    OMGWTF
+      VISIBLE "FISH IS TRANSPARENT"
+  OIC
+
 KTHXBYE
       </textarea>
       <textarea id="tokenized" style="width: 49%; height: 25em"></textarea>
