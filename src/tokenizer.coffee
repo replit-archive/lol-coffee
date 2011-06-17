@@ -120,7 +120,7 @@ tokenize = (text) ->
       line_index++
     else if match = text.match /^BTW\b.*/
       # Ignore single-line comment.
-    else if match = text.match /^OBTW\b[^]*\bTLDR\b/
+    else if match = text.match /^OBTW\b[^]*?\bTLDR\b/
       if line.length
         throw new TokenizeError line_index,
                                 'Multi-line comments must start on a new line'
