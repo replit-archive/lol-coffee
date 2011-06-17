@@ -71,7 +71,7 @@ BTW Test 1 - Square Root
 
   BOTH SAEM IMAGINARY AN WIN, O RLY?
     YA RLY
-      BOTH SAEM 1 AN X_N, O RLY? 
+      BOTH SAEM 1 AN X_N, O RLY?
         YA RLY
           X_N R "i"
         NO WAI
@@ -193,13 +193,13 @@ BTW Test 7 - Recursive Factorial
   OIC
 
   NUMBER R FACTORIAL NUMBER
-  VISIBLE SMOOSH "I FOUND UR FACTORIAL ITS " NUMBER 
+  VISIBLE SMOOSH "I FOUND UR FACTORIAL ITS " NUMBER
 
 BTW Test 8 - PI Calculation
   OBTW WE'RE GOING TO CALCULATE PI TODAY USING AN APPROXIMATION ALGORITHM CONSISTING OF CALCULATING THE SUM OF
     THE FOLLOWING SERIES:
 
-    4 * SUM OF  [   (-1)^k            k ∈ N 
+    4 * SUM OF  [   (-1)^k            k ∈ N
                     2*k + 1   ]
 
     WE GO UP TO K=1000
@@ -240,6 +240,80 @@ BTW Test 9 - Switch Case
     OMGWTF
       VISIBLE "FISH IS TRANSPARENT"
   OIC
+
+BTW Test 10 - Brainfuck interpreter
+BTW Disabled until string indexing/length extension is added.
+  OBTW
+    HOW DUZ I INTERPRET YR PROGRAM
+
+      I HAS A TAPE ITZ GOT NOTHIN
+      I HAS A COUNTER ITZ 0
+      BTW Initialise the tape
+      IM IN YR LOOP UPPIN YR COUNTER WILE BOTH SAEM BIGGR OF COUNTER AN 30000 AN 30000
+        TAPE!COUNTER R 0
+      IM OUTTA YR LOOP
+
+      I HAS A TAPEPTR ITZ 0
+      I HAS A INPUTPTR ITZ 0
+      COUNTER R 0
+
+      IM IN YR LOOP UPPIN YR COUNTER WILE BOTH SAEM SMALLR OF COUNTER AN LEN OF PROGRAM AN COUNTER
+        I HAS A C ITZ PROGRAM!COUNTER
+        C, WTF?
+          OMG ">", TAPEPTR R SUM OF TAPEPTR AN 1, GTFO
+          OMG "<", TAPEPTR R DIFF OF TAPEPTR AN 1, GTFO
+          OMG "+", TAPE!TAPEPTR R SUM OF TAPE!TAPEPTR AN 1, GTFO
+          OMG "-", TAPE!TAPEPTR R DIFF OF TAPE!TAPEPTR AN 1, GTFO
+          OMG ".", VISIBLE CHR OF TAPE!TAPEPTR !, GTFO
+          OMG ","
+            I HAS A CHAR
+            I HAS A NUM
+            GIMMEH CHAR
+            NUM R ORD OF CHAR
+            TAPE!TAPEPTR R NUM
+            GTFO
+          OMG "["
+            NOT BOTH SAEM TAPE!TAPEPTR AN 0, O RLY?
+              YA RLY, GTFO
+            OIC
+          OMG "]"
+            BOTH SAEM 0 AN TAPE!TAPEPTR, O RLY?
+              YA RLY, GTFO
+            OIC
+
+            I HAS A STACK ITZ 0
+            I HAS A DIR ITZ 1
+            BOTH SAEM C AN "]", O RLY?
+              YA RLY, DIR R -1
+            OIC
+
+            IM IN YR LOOP
+              COUNTER R SUM OF COUNTER AN DIR
+
+              EITHER OF BOTH SAEM COUNTER AN -1 AN BOTH SAEM COUNTER AN LEN OF PROGRAM, O RLY?
+                YA RLY
+                  VISIBLE "YOUR BRACKETS DIDN'T MATCH."
+                  FOUND YR 0
+
+                MEBBE BOTH SAEM PROGRAM!COUNTER AN C
+                  STACK R SUM OF STACK AN 1
+
+                MEBBE EITHER OF BOTH SAEM PROGRAM!COUNTER AN "]" AN BOTH SAEM PROGRAM!COUNTER AN "["
+                  BOTH SAEM STACK AN 0, O RLY?
+                    YA RLY, GTFO
+                    NO WAI, STACK R DIFF OF STACK AN 1
+                  OIC
+              OIC
+            IM OUTTA YR LOOP
+        OIC
+      IM OUTTA YR LOOP
+
+    IF U SAY SO
+
+    I HAS A PROGRAM ITZ "++++++++++[>+++++++>++++++++++>+++>+&lt;&lt;&lt;&lt;-]>++.>+.+++++++..+++.>++.&lt;&lt;+++++++++++++++.>.+++.------.--------.>+.>."
+
+    INTERPRET PROGRAM
+  TLDR
 
 KTHXBYE
       </textarea>
