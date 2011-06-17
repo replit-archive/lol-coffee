@@ -76,8 +76,8 @@ KEYWORDS = (word.replace /\s/g, '[ \\t\\v]+' for word in KEYWORDS)
 KEYWORD_REGEX = new RegExp "^(#{KEYWORDS.join '|'})(?=$|\\b|\\W)"
 STRING_REGEX = ///
   ^"                 # Starting string quote.
-  (                  # Either...
-    :(                 # An escape sequence, which may be one of:
+  (?:                # Either...
+    :(?:             # An escape sequence, which may be one of:
       [)>o":]            # A single-character escape code.
     |
       \([\dA-Fa-f]+\)    # A hexadecimal escape sequence.
@@ -87,7 +87,7 @@ STRING_REGEX = ///
       \[[^\[\]]+\]       # A unicode normative name.
     )
   |                  # Or...
-    [^"]               # Any non-quote character.
+    [^":]              # Any non-quote character.
   )*                 # Repeated any number of times.
   "                  # Ending string quote.
 ///
@@ -124,7 +124,9 @@ tokenize = (text) ->
       if line.length
         throw new TokenizeError line_index,
                                 'Multi-line comments must start on a new line'
-      # Ignore multi-line comment.
+      # Ignore multi-line comment but count the lines we skipped.
+      line_breaks = match[0].match /\r\n|\r|\n/g
+      line_index += line_breaks.length
     else if match = text.match KEYWORD_REGEX
       keyword = match[0].replace /\s+/g, ' '
       line.push new Token line_index, 'keyword', match[0]
