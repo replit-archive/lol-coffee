@@ -1,75 +1,13 @@
-DEFAULT_VALUES = {
-  YARN: ''
-  NUMBR: 0
-  NUMBAR: 0
-  TROOF: false
-  NOOB: null
-}
+# TODO(max99x): Document high-level usage.
 
+# The error thrown by the parser.
 class ParseError extends Error
   constructor: (line, message) ->
-    @name = 'ParseError'
     @message = "Line #{line}: #{message}."
+  name: 'ParseError'
 
-class Program
-  constructor: (@body) ->
-
-class Function
-  constructor: (@name, @args, @body) ->
-
-class Statement
-  constructor: ->
-class Return extends Statement
-  constructor: (@value) ->
-class Input extends Statement
-  constructor: (@identifier) ->
-class Output extends Statement
-  constructor: (@expression) ->
-class Declaration extends Statement
-  constructor: (@identifier) ->
-class Assignment extends Statement
-  constructor: (@identifier, @expression) ->
-class BreakStatement extends Statement
-  constructor: ->
-class StatementList extends Statement
-  constructor: (@statements) ->
-class Loop extends Statement
-  constructor: (@label, @operation, @variable, @condition, @body) ->
-class Conditional extends Statement
-  constructor: (@then_body, @else_body) ->
-class Select extends Statement
-  constructor: (@cases, @default_case) ->
-
-class Expression
-class IdentifierExpression extends Expression
-  constructor: (@identifier) ->
-class CastExpression extends Expression
-  constructor: (@identifier, @type) ->
-class CallExpression extends Expression
-  constructor: (@func_name, @args) ->
-class UnaryExpression extends Expression
-  constructor: (@operator, @operand) ->
-class BinaryExpression extends Expression
-  constructor: (@operator, @left, @right) ->
-class InfinitaryExpression extends Expression
-  constructor: (@operator, @operands) ->
-
-class Literal extends Expression
-class NullLiteral extends Literal
-class BoolLiteral extends Literal
-  constructor: (@value) ->
-class IntLiteral extends Literal
-  constructor: (@value) ->
-class FloatLiteral extends Literal
-  constructor: (@value) ->
-class StringLiteral extends Literal
-  constructor: (@value) ->
-
-UNARY_OPERATORS = ['NOT']
-BINARY_OPERATORS = ['SUM OF', 'DIFF OF', 'PRODUKT OF', 'QUOSHUNT OF', 'MOD OF',
-                    'BIGGR OF', 'SMALLR OF', 'BOTH OF', 'EITHER OF', 'WON OF',
-                    'BOTH SAEM', 'DIFFRINT']
-INFINITARY_OPERATORS = ['ALL OF', 'ANY OF', 'SMOOSH']
+# Shortcut.
+AST = window.LOLCoffee.AST
 
 # TODO(max99x): Document.
 class Parser
@@ -117,7 +55,7 @@ class Parser
     if @tokens.length isnt 0
       @_error 'Unexpected input after program end'
 
-    return new Program new StatementList statements
+    return new AST.Program new AST.StatementList statements
 
   # FunctionDefinition ::= "HOW DUZ I" IDENTIFIER FunctionArgs ENDLINE
   #                          Statement*
@@ -148,8 +86,8 @@ class Parser
     statements = []
     while @tokens.length and not @tokens[0].is 'keyword', 'IF U SAY SO'
       statements.push @parseStatement()
-    statements.push new Return new IdentifierExpression 'IT'
-    body = new StatementList statements
+    statements.push new AST.Return new AST.IdentifierExpression 'IT'
+    body = new AST.StatementList statements
     @_in_function = false
 
     # Read tail.
@@ -162,7 +100,7 @@ class Parser
       @_error 'Leftover tokens after function body'
     @tokens = @tokens[1..]
 
-    return new Function name, args, body
+    return new AST.Function name, args, body
 
   # FunctionArgs ::= ["YR" IDENTIFIER ("AN" "YR" IDENTIFIER)*]
   parseFunctionArgs: ->
@@ -196,16 +134,16 @@ class Parser
       statement = @parseOutputStatement()
     else if @tokens[0].is 'keyword', 'GTFO'
       if @_scope_depth > 0
-        statement = new BreakStatement
+        statement = new AST.Break
       else if @_in_function
-        statement = new Return new NullLiteral
+        statement = new AST.Return new AST.NullLiteral
       else
         @_error 'GTFO must be inside a loop, switch, or function'
       @tokens = @tokens[1..]
     else if @tokens[0].is 'keyword', 'FOUND YR'
       @tokens = @tokens[1..]
       if not @_in_function then @_error 'FOUND YR must be inside a function'
-      statement = new Return @parseExpression()
+      statement = new AST.Return @parseExpression()
     else if (@tokens.length >= 2 and @tokens[0].is('identifier') and
         @tokens[1].is 'keyword', 'R')
       statement = @parseAssignment()
@@ -213,7 +151,7 @@ class Parser
         @tokens[1].is 'keyword', 'IS NOW A')
       statement = @parseCastStatement()
     else
-      statement = new Assignment 'IT', @parseExpression()
+      statement = new AST.Assignment 'IT', @parseExpression()
 
     if @tokens.length < 1 then @_error 'Unexpected end of input'
     if @tokens[0].is 'endline'
@@ -233,7 +171,7 @@ class Parser
 
     if not @tokens[0].is 'identifier'
       @_error 'An identifier must follow GIMMEH'
-    input = new Input @tokens[0].text
+    input = new AST.Input @tokens[0].text
     @tokens = @tokens[1..]
 
     return input
@@ -249,7 +187,7 @@ class Parser
     if not @tokens[0].is 'identifier'
       @_error 'An identifier must follow I HAS A'
     variable = @tokens[0].text
-    declaration = new Declaration variable
+    declaration = new AST.Declaration variable
     @tokens = @tokens[1..]
 
     if @tokens.length >= 1 and @tokens[0].is 'keyword', 'ITZ'
@@ -257,10 +195,11 @@ class Parser
       if @tokens.length < 1 then @_error 'Unexpected end of input after ITZ'
       if @tokens[0].is 'keyword', 'A'
         @tokens = @tokens[1..]
-        assignment = new Assignment variable, DEFAULT_VALUES[@parseType()]
+        value = window.LOLCoffee.DEFAULT_VALUES[@parseType()]
+        assignment = new AST.Assignment variable, value
       else 
-        assignment = new Assignment variable, @parseExpression()
-      return new StatementList [declaration, assignment]
+        assignment = new AST.Assignment variable, @parseExpression()
+      return new AST.StatementList [declaration, assignment]
     else
       return declaration
 
@@ -276,7 +215,7 @@ class Parser
       @_error 'Missing assignment operator R'
     @tokens = @tokens[1..]
 
-    return new Assignment variable, @parseExpression()
+    return new AST.Assignment variable, @parseExpression()
 
   # LoopDefinition ::= "IM IN YR" IDENTIFIER
   #                    [IDENTIFIER "YR" IDENTIFIER
@@ -335,7 +274,7 @@ class Parser
           @_error 'A loop variable must be followed by WILE or TIL'
         @tokens = @tokens[1..]
         limit = @parseExpression()
-        if inverted then limit = new UnaryExpression 'NOT', limit
+        if inverted then limit = new AST.UnaryExpression 'NOT', limit
 
     if not @tokens[0].is 'endline'
       @_error 'Missing new line after loop declaration'
@@ -349,7 +288,7 @@ class Parser
         @_error 'Unexpected end of input in loop body'
       if @tokens[0].is 'keyword', 'IM OUTTA YR' then break
       statements.push @parseStatement()
-    body = new StatementList statements
+    body = new AST.StatementList statements
     @_scope_depth--
 
     # Tail.
@@ -365,7 +304,7 @@ class Parser
       @_error 'Mismatched loop label'
     @tokens = @tokens[1..]
 
-    return new Loop label, operation, variable, condition, body
+    return new AST.Loop label, operation, variable, condition, body
 
   # ConditionalStatement ::= "O RLY?" ENDLINE
   #                          "YA RLY" Statement*
@@ -398,7 +337,7 @@ class Parser
           @tokens[0].is('keyword', 'NO WAI') or
           @tokens[0].is('keyword', 'OIC')) then break
       then_statements.push @parseStatement()
-    then_body = new StatementList then_statements
+    then_body = new AST.StatementList then_statements
 
     # Optional elseif bodies.
     elseif_tuples = []
@@ -416,7 +355,7 @@ class Parser
                  @tokens[0].is('keyword', 'NO WAI') or
                  @tokens[0].is('keyword', 'OIC'))
         elseif_statements.push @parseStatement()
-      elseif_tuples.push [expression, new StatementList elseif_statements]
+      elseif_tuples.push [expression, new AST.StatementList elseif_statements]
 
     # Optional else body.
     else_statements = []
@@ -430,7 +369,7 @@ class Parser
       @tokens = @tokens[1..]
       while @tokens.length >= 1 and not @tokens[0].is 'keyword', 'OIC'
         else_statements.push @parseStatement()
-      if else_statements then else_body = new StatementList else_statements
+      if else_statements then else_body = new AST.StatementList else_statements
 
     if not @tokens[0].is 'keyword', 'OIC'
       @_error 'Missing OIC at end of conditional'
@@ -439,11 +378,11 @@ class Parser
     # Chain elseifs.
     while elseif_tuples.length
       [expression, elseif_body] = elseif_tuples.pop()
-      expression = new Assignment 'IT', expression
-      conditional = new Conditional elseif_body, else_body
-      else_body = new StatementList [expression, conditional]
+      expression = new AST.Assignment 'IT', expression
+      conditional = new AST.Conditional elseif_body, else_body
+      else_body = new AST.StatementList [expression, conditional]
 
-    return new Conditional then_body, else_body
+    return new AST.Conditional then_body, else_body
 
   # SwitchStatement ::= "WTF?" ENDLINE
   #                     ("OMG" Literal ENDLINE Statement*)*
@@ -469,7 +408,7 @@ class Parser
         @tokens = @tokens[1..]
         case_literal_line = @tokens[0].line
         literal = @parseLiteral()
-        if not (literal instanceof Literal)
+        if not (literal instanceof AST.Literal)
           @_error 'OMG value must be a literal', case_literal_line
         if @tokens.length < 2 or not @tokens[0].is 'endline'
           @_error 'Missing new line after OMG literal'
@@ -479,7 +418,7 @@ class Parser
                    @tokens[0].is('keyword', 'OMGWTF') or
                    @tokens[0].is('keyword', 'OIC'))
           case_statements.push @parseStatement()
-        cases.push [literal, new StatementList case_statements]
+        cases.push [literal, new AST.StatementList case_statements]
       else if @tokens[0].is 'keyword', 'OMGWTF'
         @tokens = @tokens[1..]
         if @tokens.length < 1 or not @tokens[0].is 'endline'
@@ -489,7 +428,7 @@ class Parser
         default_statements = []
         while not @tokens[0].is 'keyword', 'OIC'
           default_statements.push @parseStatement()
-        default_case = new StatementList default_statements
+        default_case = new AST.StatementList default_statements
       else
         # End.
         if @tokens.length < 1
@@ -500,7 +439,7 @@ class Parser
         break
     @_scope_depth--
 
-    return new Select cases, default_case
+    return new AST.Select cases, default_case
 
   # Expression ::= CastExpression | FunctionCall | IDENTIFIER | LITERAL
   parseExpression: ->
@@ -509,21 +448,21 @@ class Parser
     if @tokens[0].is 'keyword', 'MAEK'
       return @parseCastExpression()
     else if @tokens[0].is 'keyword'
-      if @tokens[0].text in UNARY_OPERATORS
+      if @tokens[0].text in window.LOLCoffee.UNARY_OPERATORS
         return @parseUnaryExpression()
-      else if @tokens[0].text in BINARY_OPERATORS
+      else if @tokens[0].text in window.LOLCoffee.BINARY_OPERATORS
         return @parseBinaryExpression()
-      else if @tokens[0].text in INFINITARY_OPERATORS
+      else if @tokens[0].text in window.LOLCoffee.INFINITARY_OPERATORS
         return @parseInfinitaryExpression()
       else if @tokens[0].text in ['WIN', 'FAIL', 'NOOB']
         return @parseLiteral()
       else
-        @_error 'Unknown keyword at start of expression'
+        @_error 'Invalid keyword at start of expression'
     else if @tokens[0].is 'identifier'
       if @tokens[0].text of @function_arities
         return @parseFunctionCall()
       else
-        identifier = new IdentifierExpression @tokens[0].text
+        identifier = new AST.IdentifierExpression @tokens[0].text
         @tokens = @tokens[1..]
         return identifier
     else
@@ -544,7 +483,7 @@ class Parser
       @tokens = @tokens[1..]
     if @tokens.length < 1
       @_error 'Unexpected end of input in cast expression'
-    return new CastExpression identifier, @parseType()
+    return new AST.CastExpression identifier, @parseType()
 
   # CastStatement ::= IDENTIFIER "IS NOW A" Type
   parseCastStatement: ->
@@ -557,8 +496,8 @@ class Parser
     if not @tokens[0].is 'keyword', 'IS NOW A'
       @_error 'A cast statement must use the operator IS NOW A'
     @tokens = @tokens[1..]
-    type = @parseType()
-    return new Assignment identifier, new CastExpression identifier, type
+    expression = new AST.CastExpression identifier, @parseType()
+    return new AST.Assignment identifier, expression
 
   # Type ::= "YARN" | "NUMBR" | "NUMBAR" | "TROOF" | "NOOB"
   parseType: ->
@@ -581,14 +520,14 @@ class Parser
     if token.is 'string'
       return @_createStringLiteral token.text
     else if token.is 'int'
-      return new IntLiteral token.text
+      return new AST.IntLiteral token.text
     else if token.is 'float'
-      return new FloatLiteral token.text
+      return new AST.FloatLiteral token.text
     else if token.is 'keyword'
       if token.text in ['WIN', 'FAIL']
-        return new BoolLiteral token.text
+        return new AST.BoolLiteral token.text
       else if token.text is 'NOOB'
-        return new NullLiteral
+        return new AST.NullLiteral
     else
       @_error 'Could not parse literal', token.line
 
@@ -603,7 +542,7 @@ class Parser
     if func not of @function_arities
       @_error 'Undefined function: ' + func
     args = (@parseExpression() for _ in [1..@function_arities[func]])
-    return new CallExpression func, args
+    return new AST.CallExpression func, args
 
   # OutputStatement ::= "VISIBLE" Expression* ["!"] (?= ENDLINE)
   parseOutputStatement: ->
@@ -622,9 +561,9 @@ class Parser
     if @tokens[0].is 'keyword', '!'
       @tokens = @tokens[1..]
     else
-      args.push new StringLiteral '\n'
+      args.push new AST.StringLiteral '\n'
 
-    return new Output new InfinitaryExpression 'SMOOSH', args
+    return new AST.Output new AST.InfinitaryExpression 'SMOOSH', args
 
   # UnaryExpression ::= UNARY_OPERATOR Expression
   parseUnaryExpression: ->
@@ -633,10 +572,10 @@ class Parser
     if not @tokens[0].is 'keyword'
       @_error 'A unary expression must start with a keyword'
     operator = @tokens[0].text
-    if operator not in UNARY_OPERATORS
+    if operator not in window.LOLCoffee.UNARY_OPERATORS
       @_error 'Unknown unary operator'
     @tokens = @tokens[1..]
-    return new UnaryExpression operator, @parseExpression()
+    return new AST.UnaryExpression operator, @parseExpression()
 
   # BinaryExpression ::= BINARY_OPERATOR Expression ["AN"] Expression
   parseBinaryExpression: ->
@@ -645,7 +584,7 @@ class Parser
     if not @tokens[0].is 'keyword'
       @_error 'A binary expression must start with a keyword'
     operator = @tokens[0].text
-    if operator not in BINARY_OPERATORS
+    if operator not in window.LOLCoffee.BINARY_OPERATORS
       @_error 'Unknown binary operator'
     @tokens = @tokens[1..]
 
@@ -658,7 +597,7 @@ class Parser
 
     right = @parseExpression()
 
-    return new BinaryExpression operator, left, right
+    return new AST.BinaryExpression operator, left, right
 
   # InfinitaryExpression ::= INFINITARY_OPERATOR Expression (["AN"] Expression)*
   #                          ("MKAY" | (?= ENDLINE))
@@ -668,7 +607,7 @@ class Parser
     if not @tokens[0].is 'keyword'
       @_error 'An infinitary expression must start with a keyword'
     operator = @tokens[0].text
-    if operator not in INFINITARY_OPERATORS
+    if operator not in window.LOLCoffee.INFINITARY_OPERATORS
       @_error 'Unknown infinitary operator'
     @tokens = @tokens[1..]
 
@@ -681,7 +620,7 @@ class Parser
     if @tokens[0].is 'keyword', 'MKAY'
       @tokens = @tokens[1..]
 
-    return new InfinitaryExpression operator, args
+    return new AST.InfinitaryExpression operator, args
 
   _createStringLiteral: (str) ->
     if not /^".*"$/.test str
@@ -706,8 +645,9 @@ class Parser
           when '{'
             variable = str[index..].match /\{([a-zA-Z]\w*)\}/
             index += variable[0].length - 1
-            if buffer.length then parts.push new StringLiteral buffer.join ''
-            parts.push new IdentifierExpression variable[1]
+            if buffer.length
+              parts.push new AST.StringLiteral buffer.join ''
+            parts.push new AST.IdentifierExpression variable[1]
             buffer = []
             # var
           when '['
@@ -716,10 +656,10 @@ class Parser
        buffer.push char
 
     if parts.length
-      if buffer.length then parts.push new StringLiteral buffer.join ''
-      return new InfinitaryExpression 'SMOOSH', parts
+      if buffer.length then parts.push new AST.StringLiteral buffer.join ''
+      return new AST.InfinitaryExpression 'SMOOSH', parts
     else
-      return new StringLiteral buffer.join ''
+      return new AST.StringLiteral buffer.join ''
 
   _error: (message, line) ->
     if not line?

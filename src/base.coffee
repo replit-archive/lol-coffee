@@ -1,2 +1,88 @@
-# Root LOLCoffee object.
-window.LOLCoffee = {}
+# Root LOLCoffee object with some basic constants.
+window.LOLCoffee =
+  KEYWORDS: [
+    'IF U SAY SO'
+    'IM OUTTA YR'
+    'QUOSHUNT OF'
+    'PRODUKT OF'
+    'BOTH SAEM'
+    'EITHER OF'
+    'HOW DUZ I'
+    'SMALLR OF'
+    'BIGGR OF'
+    'DIFFRINT'
+    'FOUND YR'
+    'IM IN YR'
+    'IS NOW A'
+    'BOTH OF'
+    'DIFF OF'
+    'I HAS A'
+    'KTHXBYE'
+    'VISIBLE'
+    'ALL OF'
+    'ANY OF'
+    'BUKKIT'
+    'GIMMEH'
+    'MOD OF'
+    'NERFIN'
+    'NUMBAR'
+    'NO WAI'
+    'O RLY?'
+    'OMGWTF'
+    'SMOOSH'
+    'SUM OF'
+    'WON OF'
+    'YA RLY'
+    'MEBBE'
+    'NUMBR'
+    'TROOF'
+    'UPPIN'
+    'FAIL'
+    'GTFO'
+    'MAEK'
+    'MKAY'
+    'NOOB'
+    'WILE'
+    'WTF?'
+    'YARN'
+    'HAI'
+    'ITZ'
+    'NOT'
+    'OIC'
+    'OMG'
+    'TIL'
+    'WIN'
+    'AN'
+    'YR'
+    '!'
+    'A'
+    'R'
+  ]
+  UNARY_OPERATORS: [
+    'NOT'
+  ]
+  BINARY_OPERATORS: [
+    'SUM OF'
+    'DIFF OF'
+    'PRODUKT OF'
+    'QUOSHUNT OF'
+    'MOD OF'
+    'BIGGR OF'
+    'SMALLR OF'
+    'BOTH OF'
+    'EITHER OF'
+    'WON OF'
+    'BOTH SAEM'
+    'DIFFRINT'
+  ]
+  INFINITARY_OPERATORS: [
+    'ALL OF'
+    'ANY OF'
+    'SMOOSH'
+  ]
+  DEFAULT_VALUES:
+    YARN: ''
+    NUMBR: 0
+    NUMBAR: 0
+    TROOF: false
+    NOOB: null

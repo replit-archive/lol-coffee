@@ -1,83 +1,13 @@
-class TokenizeError extends Error
-  constructor: (line, message) ->
-    @name = 'TokenizeError'
-    @message = "Line #{line}: #{message}."
+# TODO(max99x): Document high-level usage.
 
-TOKEN_TYPES = ['endline', 'keyword', 'identifier', 'int', 'float', 'string']
-
-class Token
-  constructor: (@line, @type, @text = '') ->
-    if type not in TOKEN_TYPES
-      throw new TokenizeError line, 'Invalid token type: ' + type
-
-  is: (type, text) ->
-    return @type == type and (text is undefined or @text == text)
-
-# All LOLCODE keywords in longer-first order to ensure correct greedy capture.
-KEYWORDS = [
-  'IF U SAY SO'
-  'IM OUTTA YR'
-  'QUOSHUNT OF'
-  'PRODUKT OF'
-  'BOTH SAEM'
-  'EITHER OF'
-  'HOW DUZ I'
-  'SMALLR OF'
-  'BIGGR OF'
-  'DIFFRINT'
-  'FOUND YR'
-  'IM IN YR'
-  'IS NOW A'
-  'BOTH OF'
-  'DIFF OF'
-  'I HAS A'
-  'KTHXBYE'
-  'VISIBLE'
-  'ALL OF'
-  'ANY OF'
-  'BUKKIT'
-  'GIMMEH'
-  'MOD OF'
-  'NERFIN'
-  'NUMBAR'
-  'NO WAI'
-  'O RLY\\?'
-  'OMGWTF'
-  'SMOOSH'
-  'SUM OF'
-  'WON OF'
-  'YA RLY'
-  'MEBBE'
-  'NUMBR'
-  'TROOF'
-  'UPPIN'
-  'FAIL'
-  'GTFO'
-  'MAEK'
-  'MKAY'
-  'NOOB'
-  'WILE'
-  'WTF\\?'
-  'YARN'
-  'HAI'
-  'ITZ'
-  'NOT'
-  'OIC'
-  'OMG'
-  'TIL'
-  'WIN'
-  'AN'
-  'YR'
-  '!'
-  'A'
-  'R'
-]
-KEYWORDS = (word.replace /\s/g, '[ \\t\\v]+' for word in KEYWORDS)
+# Expand spaces to any non-newline whitespace and escape question marks.
+KEYWORDS = for word in window.LOLCoffee.KEYWORDS
+  word.replace(/\?/g, '\\?').replace /\s/g, '[ \\t\\v]+'
 KEYWORD_REGEX = new RegExp "^(#{KEYWORDS.join '|'})(?=$|\\b|\\W)"
 STRING_REGEX = ///
   ^"                 # Starting string quote.
   (?:                # Either...
-    :(?:             # An escape sequence, which may be one of:
+    :(?:               # An escape sequence, which may be one of:
       [)>o":]            # A single-character escape code.
     |
       \([\dA-Fa-f]+\)    # A hexadecimal escape sequence.
@@ -87,10 +17,27 @@ STRING_REGEX = ///
       \[[^\[\]]+\]       # A unicode normative name.
     )
   |                  # Or...
-    [^":]              # Any non-quote character.
+    [^":]              # Any non-quote non-escape character.
   )*                 # Repeated any number of times.
   "                  # Ending string quote.
 ///
+
+# The error thrown by the tokenizer.
+class TokenizeError extends Error
+  constructor: (line, message) ->
+    @message = "Line #{line}: #{message}."
+  name: 'TokenizeError'
+
+# A single LOLCODE token, containing its type, text content and original line.
+class Token
+  constructor: (@line, @type, @text = '') ->
+    if type not in Token::TYPES
+      throw new TokenizeError line, 'Invalid token type: ' + type
+
+  is: (type, text) ->
+    return @type == type and (text is undefined or @text == text)
+
+  TYPES: ['endline', 'keyword', 'identifier', 'int', 'float', 'string']
 
 # Splits a LOLCODE source code string into a list of tokens.
 tokenize = (text) ->
