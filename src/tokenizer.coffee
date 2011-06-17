@@ -72,7 +72,7 @@ KEYWORDS = [
   'A'
   'R'
 ]
-KEYWORDS = (i.replace /[ ]/g, '[ \\t\\v]+' for i in KEYWORDS)
+KEYWORDS = (word.replace /\s/g, '[ \\t\\v]+' for word in KEYWORDS)
 KEYWORD_REGEX = new RegExp "^(#{KEYWORDS.join '|'})(?=$|\\b|\\W)"
 STRING_REGEX = ///
   ^"                 # Starting string quote.
@@ -82,7 +82,7 @@ STRING_REGEX = ///
     |
       \([\dA-Fa-f]+\)    # A hexadecimal escape sequence.
     |
-      \{[A-Za-z]+\w+\}   # An embedded variable.
+      \{[A-Za-z]\w*\}    # An embedded variable.
     |
       \[[^\[\]]+\]       # A unicode normative name.
     )
@@ -134,7 +134,7 @@ tokenize = (text) ->
       line.push new Token line_index, 'float', match[0]
     else if match = text.match /^-?\d+/
       line.push new Token line_index, 'int', match[0]
-    else if match = text.match /^"(:([)>o":]|\([\dA-Fa-f]+\))|[^"])*"/
+    else if match = text.match STRING_REGEX
       line.push new Token line_index, 'string', match[0]
     else
       snippet = text.match(/^.*/)[0]
