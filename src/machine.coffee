@@ -53,11 +53,11 @@ class Value
           when 'bool' then @value != ''
           when 'int'
             unless /^-?\d+$/.test @value
-              throw new ExecError 'Cannot parse integer from ' + @value
+              throw new ExecError "Cannot parse integer from '#{@value}'"
             parseInt @value, 10
           when 'float'
             unless /^-?(\d+(\.\d*)?|\.\d+)$/.test @value
-              throw new ExecError 'Cannot parse float from ' + @value
+              throw new ExecError "Cannot parse float from '#{@value}'"
             parseFloat @value
           when 'string' then @value
           else throw new ExecError 'Unknown type ' + to_type

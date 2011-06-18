@@ -365,7 +365,7 @@ class Parser
   parseFunctionCall: ->
     func = @_consume 'identifier'
     if func not of @function_arities then @_error 'Undefined function: ' + func
-    args = (@parseExpression() for _ in [1..@function_arities[func]])
+    args = (@parseExpression() for _ in [0...@function_arities[func]])
     return new AST.CallExpression func, args
 
   # OutputStatement ::= "VISIBLE" Expression* ["!"] (?= ENDLINE)

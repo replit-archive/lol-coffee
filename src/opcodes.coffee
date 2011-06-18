@@ -60,7 +60,9 @@ class Output
 
 class PushSyscallResult
   exec: (machine) ->
-    machine.data_stack.push new Value 'string', String machine.syscall_result
+    result = machine.syscall_result
+    result = if result then String result else ''
+    machine.data_stack.push new Value 'string', result
 
 class PushVariable
   constructor: (@identifier) ->
@@ -106,7 +108,7 @@ class Return
 class All
   constructor: (@args_count) ->
   exec: (machine) ->
-    args = for _ in [1..@args_count]
+    args = for _ in [0...@args_count]
       machine.data_stack.pop().cast('bool').value
     result = true
     for arg in args
@@ -116,7 +118,7 @@ class All
 class Any
   constructor: (@args_count) ->
   exec: (machine) ->
-    args = for _ in [1..@args_count]
+    args = for _ in [0...@args_count]
       machine.data_stack.pop().cast('bool').value
     result = false
     for arg in args
@@ -126,7 +128,7 @@ class Any
 class Concat
   constructor: (@args_count) ->
   exec: (machine) ->
-    args = for _ in [1..@args_count]
+    args = for _ in [0...@args_count]
       machine.data_stack.pop().cast('string').value
     machine.data_stack.push new Value 'string', args.join ''
 
