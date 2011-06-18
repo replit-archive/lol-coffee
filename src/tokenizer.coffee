@@ -1,9 +1,39 @@
-# TODO(max99x): Document high-level usage.
+###
+A tokenizer for LOLCODE. Splits a LOLCODE source code string into a list of
+tokens. Comments are automatically stripped. Line continuation using ellipses
+and soft statement terminators using commas are also taken into account.
+Multi-word keywords are captured is separated by any inline whitespace. The
+produced tokens are tagged with their physical line numbers for error reporting.
 
-# Expand spaces to any non-newline whitespace and escape question marks.
-KEYWORDS = for word in window.LOLCoffee.KEYWORDS
-  word.replace(/\?/g, '\\?').replace /\s/g, '[ \\t\\v]+'
-KEYWORD_REGEX = new RegExp "^(#{KEYWORDS.join '|'})(?=$|\\b|\\W)"
+The resulting tokens can be of the following types:
+  keyword: "HAI", "YA RLY", ...
+  identifier: "X3", "First_Counter", ...
+  int literals: 123, -456, 0, ..
+  float literals: 1.2, 3., .4, -6.2, ...
+  string literals: "a::b:(3F)c:{counter}d:[foo]efg", ...
+
+Example usage:
+  tokenizer = new LOLCoffee.Tokenizer source_text
+  try
+    tokens = tokenizer.tokenize()
+  catch error
+    console.assert error instanceof LOLCoffee.TokenizerError
+    console.log error
+
+Provides:
+  LOLCoffee.Tokenizer
+  LOLCoffee.TokenizerError
+###
+
+# Regular expressions for various token types.
+INT_REGEX = /^-?\d+/
+FLOAT_REGEX = /^-?(\d+\.\d*|\.\d+)/
+IDENTIFIER_REGEX = /^[a-zA-Z]\w*/
+MULTILINE_COMMENT_REGEX = /^OBTW\b[^]*?\bTLDR\b/
+COMMENT_REGEX = /^BTW\b.*/
+LINE_CONTINUATION_REGEX = /^(\u2026|\.\.\.)[ \t\v]*(\r\n|\r|\n)/
+STATEMENT_END_REGEX = /^(\r\n|\r|\n|,)/
+INLINE_SPACE_REGEX = /^[ \t\v]+/
 STRING_REGEX = ///
   ^"                 # Starting string quote.
   (?:                # Either...
@@ -21,82 +51,91 @@ STRING_REGEX = ///
   )*                 # Repeated any number of times.
   "                  # Ending string quote.
 ///
+# Expand spaces to any non-newline whitespace and escape question marks.
+KEYWORDS = for word in window.LOLCoffee.KEYWORDS
+  word.replace(/\?/g, '\\?').replace /\s/g, '[ \\t\\v]+'
+KEYWORD_REGEX = new RegExp "^(#{KEYWORDS.join '|'})(?=$|\\b|\\W)"
 
-# The error thrown by the tokenizer.
-class TokenizeError extends Error
+# The type of error thrown by the tokenizer.
+class TokenizerError extends Error
   constructor: (line, message) ->
     @message = "Line #{line}: #{message}."
-  name: 'TokenizeError'
+  name: 'TokenizerError'
 
 # A single LOLCODE token, containing its type, text content and original line.
 class Token
   constructor: (@line, @type, @text = '') ->
     if type not in Token::TYPES
-      throw new TokenizeError line, 'Invalid token type: ' + type
+      throw new TokenizerError line, 'Invalid token type: ' + type
 
   is: (type, text) ->
     return @type == type and (text is undefined or @text == text)
 
   TYPES: ['endline', 'keyword', 'identifier', 'int', 'float', 'string']
 
-# Splits a LOLCODE source code string into a list of tokens.
-tokenize = (text) ->
-  tokens = []
-  line = []
-  line_index = 1
+# A tokenizer that splits LOLCODE source into a stream of tokens.
+class Tokenizer
+  constructor: (@text) ->
+    @tokens = []
+    @line = []
+    @line_index = 1
+
+  # Runs the tokenization pass, returning a list of tokens.
+  tokenize: ->
+    while @text
+      if match = @text.match INLINE_SPACE_REGEX
+        # Skip inline spaces.
+      else if match = @text.match LINE_CONTINUATION_REGEX
+        if STATEMENT_END_REGEX.test @text[match[0].length..]
+          @_error 'Cannot have an empty line after line continuation'
+        # Skip continue lines.
+      else if match = @text.match STATEMENT_END_REGEX
+        # Consider the rest of the physical line a new logical line.
+        @_flushLine()
+      else if match = @text.match COMMENT_REGEX
+        # Skip single-line comment.
+      else if match = @text.match MULTILINE_COMMENT_REGEX
+        # Skip multi-line comment, making sure it starts on an empty line.
+        if @line.length
+          @_error 'Multiline comments must start on a new line'
+      else if match = @text.match KEYWORD_REGEX
+        # Capture the keyword, collapsing extra whitespace.
+        @_emit 'keyword', match[0].replace /\s+/g, ' '
+      else if match = @text.match IDENTIFIER_REGEX
+        @_emit 'identifier', match[0]
+      else if match = @text.match FLOAT_REGEX
+        @_emit 'float', match[0]
+      else if match = @text.match INT_REGEX
+        @_emit 'int', match[0]
+      else if match = @text.match STRING_REGEX
+        @_emit 'string', match[0]
+      else
+        # No token pattern matched.
+        snippet = @text.match(/^.*/)[0]
+        @_error 'Unrecognized sequence at: ' + snippet
+
+      line_breaks = match[0].match /\r\n|\r|\n/g
+      if line_breaks then @line_index += line_breaks.length
+      @text = @text[match[0].length..]
+
+    @_flushLine()
+
+    return @tokens
 
   # Flushes the current line to the tokens list.
-  flushLine = ->
-    if line.length
-      tokens = tokens.concat line
-      tokens.push new Token line_index, 'endline'
-    line = []
+  _flushLine: ->
+    if @line.length
+      @tokens = @tokens.concat @line
+      @tokens.push new Token @line_index, 'endline'
+    @line = []
 
-  while text
-    if match = text.match /^[ \t\v]+/
-      # Skip spaces
-    else if match = text.match /^(\r\n|\r|\n)/
-      # Proceed to a new logical and physical line.
-      line_index++
-      flushLine()
-    else if match = text.match /^,/
-      # Consider the rest of the physical line a new logical line.
-      flushLine()
-    else if match = text.match /^(\u2026|\.\.\.)[ \t\v]*(\r\n|\r|\n)/
-      # Continue the next physical line on the current logical line.
-      line_index++
-    else if match = text.match /^BTW\b.*/
-      # Ignore single-line comment.
-    else if match = text.match /^OBTW\b[^]*?\bTLDR\b/
-      if line.length
-        throw new TokenizeError line_index,
-                                'Multi-line comments must start on a new line'
-      # Ignore multi-line comment but count the lines we skipped.
-      line_breaks = match[0].match /\r\n|\r|\n/g
-      line_index += line_breaks.length
-    else if match = text.match KEYWORD_REGEX
-      keyword = match[0].replace /\s+/g, ' '
-      line.push new Token line_index, 'keyword', match[0]
-    else if match = text.match /^[a-zA-Z]\w*/
-      line.push new Token line_index, 'identifier', match[0]
-    else if match = text.match /^-?(\d+\.\d*|\d*\.\d+)/
-      line.push new Token line_index, 'float', match[0]
-    else if match = text.match /^-?\d+/
-      line.push new Token line_index, 'int', match[0]
-    else if match = text.match STRING_REGEX
-      line.push new Token line_index, 'string', match[0]
-    else
-      snippet = text.match(/^.*/)[0]
-      throw new TokenizeError line_index, 'Unrecognized sequence at: ' + snippet
+  # Adds a new token of the given type and value to the current line.
+  _emit: (type, value) ->
+    @line.push new Token @line_index, type, value
 
-    text = text[match[0].length..]
-
-  flushLine()
-
-  return tokens
+  _error: (message) ->
+    throw new TokenizerError @line_index, message
 
 # Exports.
-window.LOLCoffee.Tokenizer =
-  tokenize: tokenize
-  Error: TokenizeError
-  Token: Token
+window.LOLCoffee.Tokenizer = Tokenizer
+window.LOLCoffee.TokenizerError = TokenizerError

@@ -2,74 +2,100 @@
 <html>
   <head>
     <title>lol-coffee test</title>
+    <script src="jquery-1.6.1.min.js" type="text/javascript"></script>
     <script src="console.js" type="text/javascript"></script>
     <script src="../src/base.js" type="text/javascript"></script>
-    <script src="../src/tokenizer.js" type="text/javascript"></script>
     <script src="../src/machine.js" type="text/javascript"></script>
-    <script src="../src/opcodes.js" type="text/javascript"></script>
     <script src="../src/ast.js" type="text/javascript"></script>
     <script src="../src/parser.js" type="text/javascript"></script>
-    <script type="text/javascript">
-      function run() {
-        document.getElementById('tokenized').value = '';
-        document.getElementById('parsed').value = '';
-        document.getElementById('codegened').value = '';
-        document.getElementById('result').value = '';
+    <script src="../src/tokenizer.js" type="text/javascript"></script>
+    <script>
+      $(function() {
+        $('#src').val($('#tests').text().replace(/^\s+|\s+$/, '') + '\n');
 
-        var src = document.getElementById('src').value;
-        var pretty;
+        $('button').click(function() {
+          $('#tokenized').val('');
+          $('#parsed').val('');
+          $('#codegened').val('');
+          $('#result').val('');
+          var src = $('#src').val();
 
-        // Tokenize.
-        try {
-          var tokenized = LOLCoffee.Tokenizer.tokenize(src);
-        } catch (e) {
-          document.getElementById('tokenized').value = e;
-          return;
-        }
-        document.getElementById('tokenized').value = inspect(tokenized);
+          // Tokenize.
+          try {
+            var tokenized = new LOLCoffee.Tokenizer(src).tokenize();
+            $('#tokenized').val(inspect(tokenized));
+          } catch (e) {
+            $('#tokenized').val(e);
+            return;
+          }
 
-        // Parse.
-        try {
-          var parsed = new LOLCoffee.Parser(tokenized).parseProgram();
-        } catch (e) {
-          document.getElementById('parsed').value = e;
-          return;
-        }
-        pretty = inspect(parsed, false, 999);
-        document.getElementById('parsed').value = pretty;
+          // Parse.
+          try {
+            var parsed = new LOLCoffee.Parser(tokenized).parseProgram();
+            $('#parsed').val(inspect(parsed));
+          } catch (e) {
+            $('#parsed').val(e);
+            return;
+          }
 
-        // Codegen.
-        try {
-          var context = new LOLCoffee.CodeGenContext();
-          parsed.codegen(context);
-        } catch (e) {
-          document.getElementById('codegened').value = e;
-          return;
-        }
-        pretty = inspect(context, false, 999);
-        document.getElementById('codegened').value = pretty;
+          // Codegen.
+          try {
+            codegen_context = new LOLCoffee.CodeGenContext();
+            parsed.codegen(codegen_context);
+            $('#codegened').val(inspect(codegen_context));
+          } catch (e) {
+            $('#codegened').val(e);
+            return;
+          }
 
-        // Run.
-        document.getElementById('result').value = '';
-        var machine = new LOLCoffee.VirtualMachine(function() {
-          machine.resume(prompt('LOLWUT?'));
-        }, function(text) {
-          document.getElementById('result').value += text;
-          machine.resume();
-        }, function(error) {
-          document.getElementById('result').value = error;
-        }, function() {
-          document.getElementById('result').value += '\n------DONE------';
-          console.log(machine);
+          // Run.
+          var resultBox = $('#result')[0];
+          var machine = new LOLCoffee.Machine(codegen_context, function() {
+            machine.resume(prompt('LOLWUT?'));
+          }, function(text) {
+            resultBox.value += text;
+            machine.resume();
+          }, function(error) {
+            if (!/\n$/.test(resultBox.value)) resultBox.value += '\n';
+            resultBox.value += '=================  FAIL  =================\n';
+            resultBox.value += error;
+          }, function() {
+            if (!/\n$/.test(resultBox.value)) resultBox.value += '\n';
+            resultBox.value += '=================  DONE  =================';
+          });
+          machine.run();
         });
-        machine.sync(context);
-        machine.run();
-      }
+      });
     </script>
+    <style>
+      div {
+        text-align: center;
+      }
+      textarea {
+        height: 20em;
+        width: 49%;
+        overflow: auto;
+      }
+      #src {
+        width: 99%;
+      }
+      #tests {
+        display: none;
+      }
+    </style>
   </head>
   <body>
-    <div style="text-align: center">
-      <textarea id="src" style="width: 99%; height: 20em">
+    <div>
+      <textarea id="src"></textarea>
+      <button>Run</button>
+    </div>
+    <div>
+      <textarea id="tokenized"></textarea>
+      <textarea id="parsed"></textarea>
+      <textarea id="codegened"></textarea>
+      <textarea id="result"></textarea>
+    </div>
+    <pre id="tests">
 OBTW
   Tests from http://asgaard.co.uk/misc/loljs/
   Copyright (c) &lt;2010&gt;, Mark Watkinson
@@ -80,6 +106,7 @@ TLDR
 HAI 1.2
 
 HOW DUZ I RUN_TEST_1       BTW Square Root
+  VISIBLE "================= TEST 1 ================="
   I HAS A NUMBER
   GIMMEH NUMBER
   NUMBER IS NOW A NUMBAR
@@ -115,6 +142,7 @@ HOW DUZ I RUN_TEST_1       BTW Square Root
 IF U SAY SO
 
 HOW DUZ I RUN_TEST_2       BTW Strings
+  VISIBLE "================= TEST 2 ================="
   BTW we're going to look at some escape sequences
   I HAS A VAR ITZ 12
   BTW interpolation
@@ -139,6 +167,7 @@ HOW DUZ I XOR YR ARG1 AN YR ARG2
   FOUND YR X
 IF U SAY SO
 HOW DUZ I RUN_TEST_3       BTW Operators
+  VISIBLE "================= TEST 3 ================="
   BTW operators use prefix notation which looks like this:
   I HAS A X
   BTW (1*2) + (3/4)
@@ -170,6 +199,7 @@ HOW DUZ I DIVIDE YR NUM1 AN YR NUM2
   FOUND YR ANSWER
 IF U SAY SO
 HOW DUZ I RUN_TEST_4       BTW Functions
+  VISIBLE "================= TEST 4 ================="
   BTW let's use the function:
   I HAS A NUMBER ITZ DIVIDE 20 10
   VISIBLE NUMBER
@@ -178,6 +208,7 @@ HOW DUZ I RUN_TEST_4       BTW Functions
 IF U SAY SO
 
 HOW DUZ I RUN_TEST_5       BTW If conditions
+  VISIBLE "================= TEST 5 ================="
   I HAS A ANIMAL
   GIMMEH ANIMAL
   BOTH SAEM ANIMAL AN "CAT", O RLY?
@@ -191,6 +222,7 @@ HOW DUZ I RUN_TEST_5       BTW If conditions
 IF U SAY SO
 
 HOW DUZ I RUN_TEST_6       BTW Iterative Fibonacci
+  VISIBLE "================= TEST 6 ================="
   I HAS A TARGET ITZ 100
   I HAS A COUNTER ITZ 2
   I HAS A NUMBR1 ITZ 0
@@ -214,6 +246,7 @@ HOW DUZ I FACTORIAL YR NUMBER
   OIC
 IF U SAY SO
 HOW DUZ I RUN_TEST_7       BTW Recursive Factorial
+  VISIBLE "================= TEST 7 ================="
   I HAS A NUMBER
   GIMMEH NUMBER
   NUMBER IS NOW A NUMBR BTW WE JUST CASTED TO NUMBER
@@ -228,6 +261,7 @@ HOW DUZ I RUN_TEST_7       BTW Recursive Factorial
 IF U SAY SO
 
 HOW DUZ I RUN_TEST_8       BTW PI Calculation
+  VISIBLE "================= TEST 8 ================="
   OBTW WE'RE GOING TO CALCULATE PI TODAY USING AN APPROXIMATION ALGORITHM CONSISTING OF CALCULATING THE SUM OF
     THE FOLLOWING SERIES:
 
@@ -259,6 +293,7 @@ HOW DUZ I RUN_TEST_8       BTW PI Calculation
 IF U SAY SO
 
 HOW DUZ I RUN_TEST_9       BTW Switch Case
+  VISIBLE "================= TEST 9 ================="
   I HAS A COLOR ITZ "Y"
   COLOR, WTF?
     OMG "R"
@@ -342,6 +377,7 @@ OBTW
     IM OUTTA YR LOOP
   IF U SAY SO
   HOW DUZ I RUN_TEST_10
+    VISIBLE "================= TEST 10 ================="
     I HAS A PROGRAM ITZ "++++++++++[>+++++++>++++++++++>+++>+&lt;&lt;&lt;&lt;-]>++.>+.+++++++..+++.>++.&lt;&lt;+++++++++++++++.>.+++.------.--------.>+.>."
     INTERPRET PROGRAM
   IF U SAY SO
@@ -363,15 +399,6 @@ IF U SAY SO
 RUN_ALL_TESTS
 
 KTHXBYE
-      </textarea>
-      <br />
-      <button onclick="run();">Run</button>
-    </div>
-    <div style="text-align: center">
-      <textarea id="tokenized" style="width: 49%; height: 20em"></textarea>
-      <textarea id="parsed" style="width: 49%; height: 20em"></textarea>
-      <textarea id="codegened" style="width: 49%; height: 20em"></textarea>
-      <textarea id="result" style="width: 49%; height: 20em"></textarea>
-    </div>
+    </pre>
   </body>
 </html>

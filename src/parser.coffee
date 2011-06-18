@@ -1,19 +1,53 @@
-# TODO(max99x): Document high-level usage.
+###
+A parser for LOLCODE. Takes a list of LOLCODE tokens and produces a parse tree.
+Since LOLCODE funciton calls are ambiguous until the function being called is
+defined, the Parser keeps track of the arities of all functions defined so far.
+This means every time you want to parse a new program that uses previously
+defined functions, you will need to provide the last parser's function_arities
+to the new one.
 
-# The error thrown by the parser.
-class ParseError extends Error
-  constructor: (line, message) ->
-    @message = "Line #{line}: #{message}."
-  name: 'ParseError'
+In general, you should only need to use parseProgram(). However, similar parse
+methods for all other grammar rules are also provided.
 
-# Shortcut.
+Example usage:
+  tokenized_program_1 = ...
+  tokenized_program_2 = ...
+  tokenized_expression = ...
+  try
+    parser1 = new LOLCoffee.Parser tokenized_program_1
+    program_1_ast = parser1.parseProgram()
+
+    parser2 = new LOLCoffee.Parser tokenized_program_2, parser1
+    program_2_ast = parser2.parseProgram()
+
+    parser3 = new LOLCoffee.Parser tokenized_expression, parser2
+    expression_ast = parser3.parseExpression()
+  catch error
+    console.assert error instanceof LOLCoffee.ParserError
+    console.log error
+
+Provides:
+  LOLCoffee.Parser
+  LOLCoffee.ParserError
+
+Requires:
+  LOLCoffee.AST
+###
+
+# Imports.
 AST = window.LOLCoffee.AST
 
-# TODO(max99x): Document.
+# The type of error thrown by the parser.
+class ParserError extends Error
+  constructor: (line, message) ->
+    @message = "Line #{line}: #{message}."
+  name: 'ParserError'
+
+# The parser class. Created each time a LOLCODE program or program fragment
+# needs to be parsed. Keeps track of function arities for diambiguation.
 class Parser
   constructor: (@tokens, @function_arities={}) ->
-    # Used to disambiguate GTFO - break in loops and switches or empty return in
-    # functions.
+    # Used to disambiguate GTFO: break in loops/switches or return in functions.
     @_scope_depth = 0
     @_in_function = false
 
@@ -295,7 +329,7 @@ class Parser
     @_consume()
     @_scope_depth--
 
-    return new AST.Select cases, default_case
+    return new AST.Switch cases, default_case
 
   # Expression ::= CastExpression | FunctionCall | IDENTIFIER | LITERAL
   parseExpression: ->
@@ -416,8 +450,12 @@ class Parser
 
     return new AST.InfinitaryExpression operator, args
 
+  # Parses a string literal resolving escape codes. If the string contains no
+  # embedded variables, an AST.StringLiteral is returned. Otherwise a SMOOSH
+  # (concatenation) AST.InfinitaryExpression with the embedded variables as
+  # AST.IdentifierExpression operands.
   _createStringLiteral: (str) ->
-    unless /^".*"$/.test str then @_error 'Invalid string literal: ' + str, 0
+    unless /^".*"$/.test str then @_error 'Invalid string literal: ' + str
     str = str[1...-1]
 
     parts = []
@@ -443,7 +481,7 @@ class Parser
             parts.push new AST.IdentifierExpression variable[1]
             buffer = []
           when '['
-            @_error 'Unicode name embedding not implemented yet: ' + str, 0
+            @_error 'Unicode name embedding not implemented yet: ' + str
       else
        buffer.push char
 
@@ -453,6 +491,10 @@ class Parser
     else
       return new AST.StringLiteral buffer.join ''
 
+  # Consumes the next token, returning its text.
+  # If type is provided, verifies that the token is of the specified type.
+  # If text is provided, verifies that the token contains the specified text.
+  # If either of the verifications fails, a ParserError is thrown.
   _consume: (type, text) ->
     unless type? or text?
       return @tokens.shift().text
@@ -467,22 +509,22 @@ class Parser
         line = @tokens[0].line
         got = "#{@tokens[0].type}(#{@tokens[0].text})"
       message = "Expected: #{expected}; Got: #{got}"
-      throw new ParseError line, message
+      throw new ParserError line, message
 
+  # Returns whether the next token exists and is of the specified type. If text
+  # is provided, also checks whether it matches the token's text content.
   _nextIs: (type, text) ->
     return @tokens.length and @tokens[0].is type, text
 
+  # Throws a ParserError with a given message. If line is not defined, the line
+  # of the next token is used, or "(last line)" if no tokens remain.
   _error: (message, line) ->
-    unless line?
-      line = if @tokens.length then @tokens[0].line else line = -1
-
-    if line == -1
-      line = '(last)'
-    else if line == 0
-      line = if @tokens.length then @tokens[0].line else '(last)'
-    else
+    if line
       message += ", near #{@tokens[0].type}:'#{@tokens[0].text}'"
-    throw new ParseError line, message
+    else
+      line = if @tokens.length then @tokens[0].line else line = '(last)'
+    throw new ParserError line, message
 
 # Exports.
 window.LOLCoffee.Parser = Parser
+window.LOLCoffee.ParserError = ParserError

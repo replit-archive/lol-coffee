@@ -180,7 +180,7 @@ inspect = function(obj, showHidden, depth) {
       return prev + cur.length + 1;
     }, 0);
 
-    if (length > (MAX_COLUMNS || 50)) {
+    if (length > MAX_COLUMNS) {
       output = braces[0] +
                (base === '' ? '' : base + '\n ') +
                ' ' +
@@ -194,7 +194,7 @@ inspect = function(obj, showHidden, depth) {
 
     return output;
   }
-  return format(obj, (typeof depth === 'undefined' ? 2 : depth));
+  return format(obj, (depth === undefined ? 10 : depth));
 };
 
 
@@ -241,9 +241,6 @@ function timestamp() {
   return [d.getDate(), months[d.getMonth()], time].join(' ');
 }
 
-return {
-  inspect: inspect
-}
 })();
 
 
