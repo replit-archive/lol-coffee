@@ -111,7 +111,9 @@ class Value
 # A frame object that keeps track of the stack and instruction pointers, as well
 # as providing a variable scope.
 class Frame
-  constructor: (@stack_size, @instruction_ptr, @variables = {}) ->
+  constructor: (@name, @instruction_ptr) ->
+    @variables = {}
+    @stack = []
 
 # A halt instruction. Sets the machine halted flag and calls the done callback.
 class Halt
@@ -132,7 +134,7 @@ class Jump
 class JumpIfZero
   constructor: (@label) ->
   exec: (machine) ->
-    if machine.data_stack.pop().value == false
+    if machine.getStack().pop().value == false
       machine.instruction_ptr = machine.labels[@label]
 
 # A function declaration instruction. Binds a function name to its address.
@@ -148,7 +150,7 @@ class DeclareVariable
   exec: (machine) ->
     if @identifier is 'IT'
       throw new MachineError 'Cannot declare the special variable IT'
-    top_frame = machine.frame_stack[-1..][0]
+    top_frame = machine.frames[-1..][0]
     top_frame.variables[@identifier] = new Value 'null', null
 
 # An assinment instruction. Sets the value of its variable to the value popped
@@ -158,9 +160,9 @@ class DeclareVariable
 class Assign
   constructor: (@identifier) ->
   exec: (machine) ->
-    global_vars = machine.frame_stack[0].variables
-    local_vars = machine.frame_stack[-1..][0].variables
-    value = machine.data_stack.pop()
+    global_vars = machine.frames[0].variables
+    local_vars = machine.frames[-1..][0].variables
+    value = machine.getStack().pop()
 
     if @identifier of local_vars
       local_vars[@identifier] = value
@@ -175,8 +177,8 @@ class Assign
 class AssignAtIndex
   constructor: (@identifier) ->
   exec: (machine) ->
-    global_vars = machine.frame_stack[0].variables
-    local_vars = machine.frame_stack[-1..][0].variables
+    global_vars = machine.frames[0].variables
+    local_vars = machine.frames[-1..][0].variables
 
     if @identifier of local_vars
       scope = local_vars
@@ -186,8 +188,8 @@ class AssignAtIndex
       throw new MachineError 'Assignment to undefined variable: ' + @identifier
 
     base = scope[@identifier]
-    index = machine.data_stack.pop()
-    value = machine.data_stack.pop()
+    index = machine.getStack().pop()
+    value = machine.getStack().pop()
 
     if base.type isnt 'string'
       throw new MachineError 'Can only index YARNs, not ' + base.type
@@ -214,7 +216,7 @@ class Input
 class Output
   exec: (machine) ->
     machine.pause()
-    machine.output machine.data_stack.pop().value
+    machine.output machine.getStack().pop().value
 
 # A syscall result receiving instruction. Pushes the value of the machine's last
 # syscall result onto the stack.
@@ -222,7 +224,7 @@ class PushSyscallResult
   exec: (machine) ->
     result = machine.syscall_result
     result = if result then String result else ''
-    machine.data_stack.push new Value 'string', result
+    machine.getStack().push new Value 'string', result
 
 # A variable lookup instruction. Pushes the value bound to a variable onto the
 # stack. Checks the local (top) frame then the global (bottom) frame. Fails if
@@ -230,8 +232,8 @@ class PushSyscallResult
 class PushVariable
   constructor: (@identifier) ->
   exec: (machine) ->
-    global_vars = machine.frame_stack[0].variables
-    local_vars = machine.frame_stack[-1..][0].variables
+    global_vars = machine.frames[0].variables
+    local_vars = machine.frames[-1..][0].variables
 
     if @identifier of local_vars
       value = local_vars[@identifier]
@@ -239,41 +241,43 @@ class PushVariable
       value = global_vars[@identifier]
     else
       throw new MachineError 'Reference to undefined variable: ' + @identifier
-    machine.data_stack.push value
+    machine.getStack().push value
 
 # An indexing instruction. Pops base and index and pushes the index'th character
 # of the base.
 class GetIndex
   constructor: ->
   exec: (machine) ->
-    base = machine.data_stack.pop()
-    index = machine.data_stack.pop()
+    base = machine.getStack().pop()
+    index = machine.getStack().pop()
     if base.type isnt 'string'
       throw new MachineError 'Can only index YARNs, not ' + base.type
     if index.type isnt 'int'
       throw new MachineError 'Can only index using NUMBRs, not ' + index.type
     if index.value >= base.value.length
       throw new MachineError "Out of bounds: '#{base.value}'[#{index.value}]"
-    machine.data_stack.push new Value 'string', base.value[index.value]
+    machine.getStack().push new Value 'string', base.value[index.value]
 
 # A literal pushing instruction. Pushes a typed literal value onto the stack.
 class PushLiteral
   constructor: (@type, @value) ->
   exec: (machine) ->
-    machine.data_stack.push new Value @type, @value
+    machine.getStack().push new Value @type, @value
 
 # A cast instruction. Casts the top of the stack into the specified type.
 class Cast
   constructor: (@type, @explicit = false) ->
   exec: (machine) ->
-    machine.data_stack.push machine.data_stack.pop().cast @type, @explicit
+    machine.getStack().push machine.getStack().pop().cast @type, @explicit
 
 # A call instruction. Pushes a new frame and jumps to the specified function.
 class Call
   constructor: (@func_name, @args_count) ->
   exec: (machine) ->
-    stack_size = machine.data_stack.length - @args_count
-    machine.frame_stack.push new Frame stack_size, machine.instruction_ptr
+    old_stack = machine.getStack()
+    machine.frames.push new Frame @func_name, machine.instruction_ptr
+    for _ in [0...@args_count]
+      machine.getStack().push old_stack.pop()
     machine.instruction_ptr = machine.functions[@func_name]
 
 # A return instruction. Pops the return value and the top frame, jumps to the
@@ -281,15 +285,10 @@ class Call
 # and finally pushes the result back into the stack.
 class Return
   exec: (machine) ->
-    result = machine.data_stack.pop()
-    frame = machine.frame_stack.pop()
-
+    result = machine.getStack().pop()
+    frame = machine.frames.pop()
     machine.instruction_ptr = frame.instruction_ptr
-    if machine.data_stack.length < frame.stack_size
-      throw new MachineError 'Stack corruption detected'
-    machine.data_stack.length = frame.stack_size
-
-    machine.data_stack.push result
+    machine.getStack().push result
 
 # An n-ary all operator instruction. Pops its N operands off the stack and
 # pushes a boolean value indicating whether all the of the operands are true in
@@ -298,11 +297,11 @@ class All
   constructor: (@args_count) ->
   exec: (machine) ->
     args = for _ in [0...@args_count]
-      machine.data_stack.pop().cast('bool').value
+      machine.getStack().pop().cast('bool').value
     result = true
     for arg in args
       unless arg then result = false; break
-    machine.data_stack.push new Value 'bool', result
+    machine.getStack().push new Value 'bool', result
 
 # An n-ary any operator instruction. Pops its N operands off the stack and
 # pushes a boolean value indicating whether at least one of its operands is true
@@ -311,11 +310,11 @@ class Any
   constructor: (@args_count) ->
   exec: (machine) ->
     args = for _ in [0...@args_count]
-      machine.data_stack.pop().cast('bool').value
+      machine.getStack().pop().cast('bool').value
     result = false
     for arg in args
       if arg then result = true; break
-    machine.data_stack.push new Value 'bool', result
+    machine.getStack().push new Value 'bool', result
 
 # An n-ary concatenation operator instruction. Pops its N operands off the
 # stack, casts them to strings, concatenates them and pushes the resulting
@@ -324,22 +323,22 @@ class Concat
   constructor: (@args_count) ->
   exec: (machine) ->
     args = for _ in [0...@args_count]
-      machine.data_stack.pop().cast('string').value
-    machine.data_stack.push new Value 'string', args.join ''
+      machine.getStack().pop().cast('string').value
+    machine.getStack().push new Value 'string', args.join ''
 
 # An abstract base class for binary mathematical operator instructions. Provides
 # an exec() method that wraps any binary math operation with the correct casting
 # to float/int as per the LOLCODE 1.2 spec.
 class MathOperation
   exec: (machine, operation) ->
-    left = machine.data_stack.pop()
-    right = machine.data_stack.pop()
+    left = machine.getStack().pop()
+    right = machine.getStack().pop()
     type = if 'float' in [left.type, right.type] then 'float' else 'int'
     left = left.cast(type).value
     right = right.cast(type).value
     result = operation left, right
     if type is 'int' then result = Math.floor result
-    machine.data_stack.push new Value type, result
+    machine.getStack().push new Value type, result
 
 # A binary addition operator instruction. Pops two values and pushes their sum.
 class Add extends MathOperation
@@ -385,9 +384,9 @@ class Min extends MathOperation
 # an exec() method that wraps any binary boolean operation.
 class BoolOperation
   exec: (machine, operation) ->
-    left = machine.data_stack.pop().cast('bool').value
-    right = machine.data_stack.pop().cast('bool').value
-    machine.data_stack.push new Value 'bool', operation left, right
+    left = machine.getStack().pop().cast('bool').value
+    right = machine.getStack().pop().cast('bool').value
+    machine.getStack().push new Value 'bool', operation left, right
 
 # A binary boolean "and" operator instruction. Pops two values and pushes a
 # true value if both of them are true and a false value otherwise.
@@ -412,54 +411,54 @@ class Xor extends BoolOperation
 # value if the two values are equal as per the LOLCODE 1.2 comparison rules.
 class Equal
   exec: (machine) ->
-    left = machine.data_stack.pop()
-    right = machine.data_stack.pop()
-    machine.data_stack.push new Value 'bool', left.equal right
+    left = machine.getStack().pop()
+    right = machine.getStack().pop()
+    machine.getStack().push new Value 'bool', left.equal right
 
 # A binary inequality operator instruction. Pops two values and pushes a true
 # value if the two values are not equal as per the LOLCODE 1.2 comparison rules.
 class Unequal
   exec: (machine) ->
-    left = machine.data_stack.pop()
-    right = machine.data_stack.pop()
-    machine.data_stack.push new Value 'bool', not left.equal right
+    left = machine.getStack().pop()
+    right = machine.getStack().pop()
+    machine.getStack().push new Value 'bool', not left.equal right
 
 # A unary boolean invertion operator instruction. Casts the top of the stack
 # into a boolean and inverts it.
 class Invert
   exec: (machine) ->
-    operand = machine.data_stack.pop().cast('bool').value
-    machine.data_stack.push new Value 'bool', not operand
+    operand = machine.getStack().pop().cast('bool').value
+    machine.getStack().push new Value 'bool', not operand
 
 # A unary length operator instruction. Pushes the length of the value popped
 # from the stack.
 class GetLength
   exec: (machine) ->
-    operand = machine.data_stack.pop()
+    operand = machine.getStack().pop()
     if operand.type isnt 'string'
       throw new MachineError 'Can only get length of YARNs'
-    machine.data_stack.push new Value 'int', operand.value.length
+    machine.getStack().push new Value 'int', operand.value.length
 
 # A unary character code conversion operator instruction. Pushes the character
 # expressed by the character code popped from the stack.
 class FromCharCode
   exec: (machine) ->
-    operand = machine.data_stack.pop()
+    operand = machine.getStack().pop()
     if operand.type isnt 'int'
       throw new MachineError('Character codes must be NUMBRs, not ' +
                              operand.type)
     str = String.fromCharCode operand.value
-    machine.data_stack.push new Value 'string', str
+    machine.getStack().push new Value 'string', str
 
 # A unary character code conversion operator instruction. Pushes the character
 # code of the character at the beginning of the string popped from the stack.
 class ToCharCode
   exec: (machine) ->
-    operand = machine.data_stack.pop()
+    operand = machine.getStack().pop()
     if operand.type isnt 'string' or not operand.value.length
       throw new MachineError('Can only take character code of non-empty ' + 
                              "YARNs, not '#{operand.type}'")
-    machine.data_stack.push new Value 'int', operand.value.charCodeAt 0
+    machine.getStack().push new Value 'int', operand.value.charCodeAt 0
 
 # A virtual machine for running LOLCoffee instructions. The constructor receives
 # a codegen context and an optional set of callbacks for I/O, error reporting
@@ -480,8 +479,8 @@ class Machine
   # Resets the machine's state, e.g. to recover from errors and restart.
   reset: ->
     @instruction_ptr = 0
-    @data_stack = []
-    @frame_stack = [new Frame 0, 0, IT: new Value('null', null)]
+    @frames = [new Frame '{MAIN}', 0]
+    @frames[0].variables.IT = new Value 'null', null
     @functions = {}
     @halted = true
     @blocked = false
@@ -512,6 +511,10 @@ class Machine
     @syscall_result = syscall_result
     @blocked = false
     @run() unless @halted
+
+  # Returns a reference to the stack of the nearest frame.
+  getStack: ->
+    return @frames[@frames.length - 1].stack
 
 # Exports.
 window.LOLCoffee.Machine = Machine

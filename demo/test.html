@@ -12,7 +12,6 @@
     <script>
       $(function() {
         $('#src').val($('#tests').text().replace(/^\s+|\s+$/, '') + '\n');
-
         $('button').click(function() {
           $('#tokenized').val('');
           $('#parsed').val('');
@@ -58,7 +57,10 @@
           }, function(error) {
             if (!/\n$/.test(resultBox.value)) resultBox.value += '\n';
             resultBox.value += '=================  FAIL  =================\n';
-            resultBox.value += error + '\n' + inspect(machine.frame_stack);
+            resultBox.value += error + '\nCall stack:\n';
+            for (var i = machine.frames.length - 1; i >= 0; i--) {
+              resultBox.value += '  ' + machine.frames[i].name + '\n';
+            }
           }, function() {
             if (!/\n$/.test(resultBox.value)) resultBox.value += '\n';
             resultBox.value += '=================  DONE  =================';
@@ -95,8 +97,6 @@
       <textarea id="codegened"></textarea>
       <textarea id="result"></textarea>
     </div>
-    
-    
     <pre id="tests">
 OBTW
   Tests from http://asgaard.co.uk/misc/loljs/
