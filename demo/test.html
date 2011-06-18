@@ -5,21 +5,26 @@
     <script src="console.js" type="text/javascript"></script>
     <script src="../src/base.js" type="text/javascript"></script>
     <script src="../src/tokenizer.js" type="text/javascript"></script>
+    <script src="../src/machine.js" type="text/javascript"></script>
+    <script src="../src/opcodes.js" type="text/javascript"></script>
     <script src="../src/ast.js" type="text/javascript"></script>
     <script src="../src/parser.js" type="text/javascript"></script>
     <script type="text/javascript">
-      function parse() {
+      function run() {
         document.getElementById('tokenized').value = '';
         document.getElementById('parsed').value = '';
+        document.getElementById('codegened').value = '';
+        document.getElementById('result').value = '';
+
         var src = document.getElementById('src').value;
+        var pretty;
 
         // Tokenize.
         try {
           var tokenized = LOLCoffee.Tokenizer.tokenize(src);
         } catch (e) {
           document.getElementById('tokenized').value = e;
-          // Re-trigger the error to get a stack trace in the console.
-          LOLCoffee.Tokenizer.tokenize(src);
+          return;
         }
         document.getElementById('tokenized').value = inspect(tokenized);
 
@@ -28,16 +33,43 @@
           var parsed = new LOLCoffee.Parser(tokenized).parseProgram();
         } catch (e) {
           document.getElementById('parsed').value = e;
-          // Re-trigger the error to get a stack trace in the console.
-          new LOLCoffee.Parser(tokenized).parseProgram();
+          return;
         }
-        document.getElementById('parsed').value = inspect(parsed, false, 999);
+        pretty = inspect(parsed, false, 999);
+        document.getElementById('parsed').value = pretty;
+
+        // Codegen.
+        try {
+          var context = new LOLCoffee.CodeGenContext();
+          parsed.codegen(context);
+        } catch (e) {
+          document.getElementById('codegened').value = e;
+          return;
+        }
+        pretty = inspect(context, false, 999);
+        document.getElementById('codegened').value = pretty;
+
+        // Run.
+        document.getElementById('result').value = '';
+        var machine = new LOLCoffee.VirtualMachine(function() {
+          machine.resume(prompt('LOLWUT?'));
+        }, function(text) {
+          document.getElementById('result').value += text;
+          machine.resume();
+        }, function(error) {
+          document.getElementById('result').value = error;
+        }, function() {
+          document.getElementById('result').value += '\n------DONE------';
+          console.log(machine);
+        });
+        machine.sync(context);
+        machine.run();
       }
     </script>
   </head>
   <body>
     <div style="text-align: center">
-      <textarea id="src" style="width: 49%; height: 25em">
+      <textarea id="src" style="width: 99%; height: 20em">
 OBTW
   Tests from http://asgaard.co.uk/misc/loljs/
   Copyright (c) &lt;2010&gt;, Mark Watkinson
@@ -47,7 +79,7 @@ TLDR
 
 HAI 1.2
 
-BTW Test 1 - Square Root
+HOW DUZ I RUN_TEST_1       BTW Square Root
   I HAS A NUMBER
   GIMMEH NUMBER
   NUMBER IS NOW A NUMBAR
@@ -80,8 +112,9 @@ BTW Test 1 - Square Root
   OIC
 
   VISIBLE SMOOSH "sqrt(" AN NUMBER AN ") ~ ±" AN X_N
+IF U SAY SO
 
-BTW Test 2 - Strings
+HOW DUZ I RUN_TEST_2       BTW Strings
   BTW we're going to look at some escape sequences
   I HAS A VAR ITZ 12
   BTW interpolation
@@ -98,14 +131,19 @@ BTW Test 2 - Strings
   BTW escaping newlines, and tabs
   VISIBLE "---"
   VISIBLE "I SAID:):>:"hello:":)to him"
+IF U SAY SO
 
-BTW Test 2 - Operators
+HOW DUZ I XOR YR ARG1 AN YR ARG2
+  I HAS A X ITZ NOT BOTH SAEM ARG1 AN ARG2
+  X R BOTH OF X AN EITHER OF ARG1 AN ARG2
+  FOUND YR X
+IF U SAY SO
+HOW DUZ I RUN_TEST_3       BTW Operators
   BTW operators use prefix notation which looks like this:
   I HAS A X
   BTW (1*2) + (3/4)
   X R SUM OF PRODUKT OF 1 AN 2 AN QUOSHUNT OF 3 AN 4
   VISIBLE "X IS :{X}"
-
 
   BTW there are also some infinite arity operators (terminated by MKAY):
   BTW here we nest the nary ANY OF inside the binary BOTH SAEM
@@ -115,11 +153,6 @@ BTW Test 2 - Operators
   BTW we can define our own functions which work a lot like operators
   BTW we can nest function calls inside operator expressions:
   BTW define an XOR
-  HOW DUZ I XOR YR ARG1 AN YR ARG2
-    I HAS A X ITZ NOT BOTH SAEM ARG1 AN ARG2
-    X R BOTH OF X AN EITHER OF ARG1 AN ARG2
-    FOUND YR X
-  IF U SAY SO
 
   BTW SMOOSH is an infinite arity concatenation operator
   VISIBLE SMOOSH "XOR 1 AN 0 = " AN XOR 1 0 MKAY
@@ -127,26 +160,24 @@ BTW Test 2 - Operators
   BTW now we use the function in a more complex expression:
   BTW this reads: 'xor(0+1, 0) + 2' = 3
   VISIBLE SUM OF XOR SUM OF 0 AN 1 0 AN 2
+IF U SAY SO
 
-BTW Test 4 - Functions
-  HOW DUZ I ADD YR NUM1 AN YR NUM2
-    SUM OF NUM1 AN NUM2
-  IF U SAY SO
-
-
-  HOW DUZ I DIVIDE YR NUM1 AN YR NUM2
-    I HAS A ANSWER ITZ QUOSHUNT OF NUM1 AN NUM2
-    FOUND YR ANSWER
-  IF U SAY SO
-
-
+HOW DUZ I ADD YR NUM1 AN YR NUM2
+  SUM OF NUM1 AN NUM2
+IF U SAY SO
+HOW DUZ I DIVIDE YR NUM1 AN YR NUM2
+  I HAS A ANSWER ITZ QUOSHUNT OF NUM1 AN NUM2
+  FOUND YR ANSWER
+IF U SAY SO
+HOW DUZ I RUN_TEST_4       BTW Functions
   BTW let's use the function:
   I HAS A NUMBER ITZ DIVIDE 20 10
   VISIBLE NUMBER
   NUMBER R ADD 20 10
   VISIBLE NUMBER
+IF U SAY SO
 
-BTW Test 5 - If conditions
+HOW DUZ I RUN_TEST_5       BTW If conditions
   I HAS A ANIMAL
   GIMMEH ANIMAL
   BOTH SAEM ANIMAL AN "CAT", O RLY?
@@ -157,8 +188,9 @@ BTW Test 5 - If conditions
     NO WAI
       VISIBLE "J00 SUX"
   OIC
+IF U SAY SO
 
-BTW Test 6 - Iterative Fibonacci
+HOW DUZ I RUN_TEST_6       BTW Iterative Fibonacci
   I HAS A TARGET ITZ 100
   I HAS A COUNTER ITZ 2
   I HAS A NUMBR1 ITZ 0
@@ -171,18 +203,17 @@ BTW Test 6 - Iterative Fibonacci
     NUMBR2 R NUMBR_TMP
     VISIBLE SMOOSH COUNTER ":: " NUMBR_TMP
   IM OUTTA YR LOOP
+IF U SAY SO
 
-BTW Test 7 - Recursive Factorial
-  HOW DUZ I FACTORIAL YR NUMBER
-    BOTH SAEM 0 AN BIGGR OF NUMBER AN 0, O RLY?
-      YA RLY
-        FOUND YR 1
-      NO WAI
-        FOUND YR PRODUKT OF NUMBER AN FACTORIAL DIFF OF NUMBER AN 1
-    OIC
-  IF U SAY SO
-
-
+HOW DUZ I FACTORIAL YR NUMBER
+  BOTH SAEM 0 AN BIGGR OF NUMBER AN 0, O RLY?
+    YA RLY
+      FOUND YR 1
+    NO WAI
+      FOUND YR PRODUKT OF NUMBER AN FACTORIAL DIFF OF NUMBER AN 1
+  OIC
+IF U SAY SO
+HOW DUZ I RUN_TEST_7       BTW Recursive Factorial
   I HAS A NUMBER
   GIMMEH NUMBER
   NUMBER IS NOW A NUMBR BTW WE JUST CASTED TO NUMBER
@@ -194,8 +225,9 @@ BTW Test 7 - Recursive Factorial
 
   NUMBER R FACTORIAL NUMBER
   VISIBLE SMOOSH "I FOUND UR FACTORIAL ITS " NUMBER
+IF U SAY SO
 
-BTW Test 8 - PI Calculation
+HOW DUZ I RUN_TEST_8       BTW PI Calculation
   OBTW WE'RE GOING TO CALCULATE PI TODAY USING AN APPROXIMATION ALGORITHM CONSISTING OF CALCULATING THE SUM OF
     THE FOLLOWING SERIES:
 
@@ -205,9 +237,9 @@ BTW Test 8 - PI Calculation
     WE GO UP TO K=1000
   TLDR
 
-  I HAS A LIMIT ITZ 1000
-  I HAS A K ITZ 0
-  I HAS A PI_APPROXIMATION ITZ 0
+  I HAS A LIMIT ITZ 1000.0
+  I HAS A K ITZ 0.0
+  I HAS A PI_APPROXIMATION ITZ 0.0
 
   IM IN YR LOOP UPPIN YR K WILE NOT BOTH SAEM K AN LIMIT
     I HAS A NUMERATOR
@@ -224,9 +256,10 @@ BTW Test 8 - PI Calculation
   PI_APPROXIMATION R PRODUKT OF PI_APPROXIMATION AN 4
   VISIBLE "PI IS "!
   VISIBLE PI_APPROXIMATION
+IF U SAY SO
 
-BTW Test 9 - Switch Case
-  I HAS A COLOR ITZ "GREEN"
+HOW DUZ I RUN_TEST_9       BTW Switch Case
+  I HAS A COLOR ITZ "Y"
   COLOR, WTF?
     OMG "R"
       VISIBLE "RED FISH"
@@ -240,86 +273,105 @@ BTW Test 9 - Switch Case
     OMGWTF
       VISIBLE "FISH IS TRANSPARENT"
   OIC
+IF U SAY SO
 
-BTW Test 10 - Brainfuck interpreter
-BTW Disabled until string indexing/length extension is added.
-  OBTW
-    HOW DUZ I INTERPRET YR PROGRAM
+OBTW
+  BTW Brainfuck interpreter
+  BTW Disabled until string indexing/length extension is added.
+  HOW DUZ I INTERPRET YR PROGRAM
+    I HAS A TAPE ITZ GOT NOTHIN
+    I HAS A COUNTER ITZ 0
+    BTW Initialise the tape
+    IM IN YR LOOP UPPIN YR COUNTER WILE BOTH SAEM BIGGR OF COUNTER AN 30000 AN 30000
+      TAPE!COUNTER R 0
+    IM OUTTA YR LOOP
 
-      I HAS A TAPE ITZ GOT NOTHIN
-      I HAS A COUNTER ITZ 0
-      BTW Initialise the tape
-      IM IN YR LOOP UPPIN YR COUNTER WILE BOTH SAEM BIGGR OF COUNTER AN 30000 AN 30000
-        TAPE!COUNTER R 0
-      IM OUTTA YR LOOP
+    I HAS A TAPEPTR ITZ 0
+    I HAS A INPUTPTR ITZ 0
+    COUNTER R 0
 
-      I HAS A TAPEPTR ITZ 0
-      I HAS A INPUTPTR ITZ 0
-      COUNTER R 0
+    IM IN YR LOOP UPPIN YR COUNTER WILE BOTH SAEM SMALLR OF COUNTER AN LEN OF PROGRAM AN COUNTER
+      I HAS A C ITZ PROGRAM!COUNTER
+      C, WTF?
+        OMG ">", TAPEPTR R SUM OF TAPEPTR AN 1, GTFO
+        OMG "&lt;", TAPEPTR R DIFF OF TAPEPTR AN 1, GTFO
+        OMG "+", TAPE!TAPEPTR R SUM OF TAPE!TAPEPTR AN 1, GTFO
+        OMG "-", TAPE!TAPEPTR R DIFF OF TAPE!TAPEPTR AN 1, GTFO
+        OMG ".", VISIBLE CHR OF TAPE!TAPEPTR !, GTFO
+        OMG ","
+          I HAS A CHAR
+          I HAS A NUM
+          GIMMEH CHAR
+          NUM R ORD OF CHAR
+          TAPE!TAPEPTR R NUM
+          GTFO
+        OMG "["
+          NOT BOTH SAEM TAPE!TAPEPTR AN 0, O RLY?
+            YA RLY, GTFO
+          OIC
+        OMG "]"
+          BOTH SAEM 0 AN TAPE!TAPEPTR, O RLY?
+            YA RLY, GTFO
+          OIC
 
-      IM IN YR LOOP UPPIN YR COUNTER WILE BOTH SAEM SMALLR OF COUNTER AN LEN OF PROGRAM AN COUNTER
-        I HAS A C ITZ PROGRAM!COUNTER
-        C, WTF?
-          OMG ">", TAPEPTR R SUM OF TAPEPTR AN 1, GTFO
-          OMG "<", TAPEPTR R DIFF OF TAPEPTR AN 1, GTFO
-          OMG "+", TAPE!TAPEPTR R SUM OF TAPE!TAPEPTR AN 1, GTFO
-          OMG "-", TAPE!TAPEPTR R DIFF OF TAPE!TAPEPTR AN 1, GTFO
-          OMG ".", VISIBLE CHR OF TAPE!TAPEPTR !, GTFO
-          OMG ","
-            I HAS A CHAR
-            I HAS A NUM
-            GIMMEH CHAR
-            NUM R ORD OF CHAR
-            TAPE!TAPEPTR R NUM
-            GTFO
-          OMG "["
-            NOT BOTH SAEM TAPE!TAPEPTR AN 0, O RLY?
-              YA RLY, GTFO
+          I HAS A STACK ITZ 0
+          I HAS A DIR ITZ 1
+          BOTH SAEM C AN "]", O RLY?
+            YA RLY, DIR R -1
+          OIC
+
+          IM IN YR LOOP
+            COUNTER R SUM OF COUNTER AN DIR
+
+            EITHER OF BOTH SAEM COUNTER AN -1 AN BOTH SAEM COUNTER AN LEN OF PROGRAM, O RLY?
+              YA RLY
+                VISIBLE "YOUR BRACKETS DIDN'T MATCH."
+                FOUND YR 0
+
+              MEBBE BOTH SAEM PROGRAM!COUNTER AN C
+                STACK R SUM OF STACK AN 1
+
+              MEBBE EITHER OF BOTH SAEM PROGRAM!COUNTER AN "]" AN BOTH SAEM PROGRAM!COUNTER AN "["
+                BOTH SAEM STACK AN 0, O RLY?
+                  YA RLY, GTFO
+                  NO WAI, STACK R DIFF OF STACK AN 1
+                OIC
             OIC
-          OMG "]"
-            BOTH SAEM 0 AN TAPE!TAPEPTR, O RLY?
-              YA RLY, GTFO
-            OIC
-
-            I HAS A STACK ITZ 0
-            I HAS A DIR ITZ 1
-            BOTH SAEM C AN "]", O RLY?
-              YA RLY, DIR R -1
-            OIC
-
-            IM IN YR LOOP
-              COUNTER R SUM OF COUNTER AN DIR
-
-              EITHER OF BOTH SAEM COUNTER AN -1 AN BOTH SAEM COUNTER AN LEN OF PROGRAM, O RLY?
-                YA RLY
-                  VISIBLE "YOUR BRACKETS DIDN'T MATCH."
-                  FOUND YR 0
-
-                MEBBE BOTH SAEM PROGRAM!COUNTER AN C
-                  STACK R SUM OF STACK AN 1
-
-                MEBBE EITHER OF BOTH SAEM PROGRAM!COUNTER AN "]" AN BOTH SAEM PROGRAM!COUNTER AN "["
-                  BOTH SAEM STACK AN 0, O RLY?
-                    YA RLY, GTFO
-                    NO WAI, STACK R DIFF OF STACK AN 1
-                  OIC
-              OIC
-            IM OUTTA YR LOOP
-        OIC
-      IM OUTTA YR LOOP
-
-    IF U SAY SO
-
+          IM OUTTA YR LOOP
+      OIC
+    IM OUTTA YR LOOP
+  IF U SAY SO
+  HOW DUZ I RUN_TEST_10
     I HAS A PROGRAM ITZ "++++++++++[>+++++++>++++++++++>+++>+&lt;&lt;&lt;&lt;-]>++.>+.+++++++..+++.>++.&lt;&lt;+++++++++++++++.>.+++.------.--------.>+.>."
-
     INTERPRET PROGRAM
-  TLDR
+  IF U SAY SO
+TLDR
+
+HOW DUZ I RUN_ALL_TESTS
+  RUN_TEST_1
+  RUN_TEST_2
+  RUN_TEST_3
+  RUN_TEST_4
+  RUN_TEST_5
+  RUN_TEST_6
+  RUN_TEST_7
+  RUN_TEST_8
+  RUN_TEST_9
+  BTW RUN_TEST_10
+IF U SAY SO
+
+RUN_ALL_TESTS
 
 KTHXBYE
       </textarea>
-      <textarea id="tokenized" style="width: 49%; height: 25em"></textarea>
-      <button onclick="parse();">Parse</button>
-      <textarea id="parsed" style="width: 99%; height: 25em"></textarea>
+      <br />
+      <button onclick="run();">Run</button>
+    </div>
+    <div style="text-align: center">
+      <textarea id="tokenized" style="width: 49%; height: 20em"></textarea>
+      <textarea id="parsed" style="width: 49%; height: 20em"></textarea>
+      <textarea id="codegened" style="width: 49%; height: 20em"></textarea>
+      <textarea id="result" style="width: 49%; height: 20em"></textarea>
     </div>
   </body>
 </html>
