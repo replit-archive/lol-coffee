@@ -16,10 +16,12 @@ class Parser
     # functions.
     @_scope_depth = 0
     @_in_function = false
-  Error: ParseError
 
   # Program ::= Statement* | "HAI" [1.2] Statement* "KTHXBAI"
   parseProgram: ->
+    unless @tokens.length
+      return new AST.Program new AST.StatementList []
+
     started_with_hai = @_nextIs 'keyword', 'HAI'
     if started_with_hai
       @_consume()
@@ -206,7 +208,7 @@ class Parser
     @_consume 'keyword', 'IM OUTTA YR'
     if label != @_consume 'identifier' then @_error 'Mismatched loop label'
 
-    return new AST.Loop label, operation, variable, condition, body
+    return new AST.Loop operation, limit, body
 
   # ConditionalStatement ::= "O RLY?" ENDLINE
   #                          "YA RLY" Statement*
@@ -322,15 +324,16 @@ class Parser
   # CastExpression ::= "MAEK" IDENTIFIER ["A"] Type
   parseCastExpression: ->
     @_consume 'keyword', 'MAEK'
-    identifier = @_consume 'identifier'
+    expression = @parseExpression()
     if @_nextIs 'keyword', 'A' then @_consume()
-    return new AST.CastExpression identifier, @parseType()
+    return new AST.CastExpression expression, @parseType()
 
   # CastStatement ::= IDENTIFIER "IS NOW A" Type
   parseCastStatement: ->
     identifier = @_consume 'identifier'
+    identifier_expr = new AST.IdentifierExpression identifier
     @_consume 'keyword', 'IS NOW A'
-    expression = new AST.CastExpression identifier, @parseType()
+    expression = new AST.CastExpression identifier_expr, @parseType()
     return new AST.Assignment identifier, expression
 
   # Type ::= "YARN" | "NUMBR" | "NUMBAR" | "TROOF" | "NOOB"
@@ -467,7 +470,7 @@ class Parser
       throw new ParseError line, message
 
   _nextIs: (type, text) ->
-    return @tokens?[0].is type, text
+    return @tokens.length and @tokens[0].is type, text
 
   _error: (message, line) ->
     unless line?
