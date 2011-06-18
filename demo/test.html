@@ -4,11 +4,7 @@
     <title>lol-coffee test</title>
     <script src="jquery-1.6.1.min.js" type="text/javascript"></script>
     <script src="console.js" type="text/javascript"></script>
-    <script src="../src/base.js" type="text/javascript"></script>
-    <script src="../src/machine.js" type="text/javascript"></script>
-    <script src="../src/ast.js" type="text/javascript"></script>
-    <script src="../src/parser.js" type="text/javascript"></script>
-    <script src="../src/tokenizer.js" type="text/javascript"></script>
+    <script src="lol-coffee.min.js" type="text/javascript"></script>
     <script>
       $(function() {
         $('#src').val($('#tests').text().replace(/^\s+|\s+$/, '') + '\n');
@@ -18,11 +14,12 @@
           $('#codegened').val('');
           $('#result').val('');
           var src = $('#src').val();
+          var verbose = $('#verbose').is(':checked');
 
           // Tokenize.
           try {
             var tokenized = new LOLCoffee.Tokenizer(src).tokenize();
-            $('#tokenized').val(inspect(tokenized));
+            if (verbose) $('#tokenized').val(inspect(tokenized));
           } catch (e) {
             $('#tokenized').val(e);
             return;
@@ -31,7 +28,7 @@
           // Parse.
           try {
             var parsed = new LOLCoffee.Parser(tokenized).parseProgram();
-            $('#parsed').val(inspect(parsed));
+            if (verbose) $('#parsed').val(inspect(parsed));
           } catch (e) {
             $('#parsed').val(e);
             return;
@@ -41,7 +38,7 @@
           try {
             codegen_context = new LOLCoffee.CodeGenContext();
             parsed.codegen(codegen_context);
-            $('#codegened').val(inspect(codegen_context));
+            if (verbose) $('#codegened').val(inspect(codegen_context));
           } catch (e) {
             $('#codegened').val(e);
             return;
@@ -90,6 +87,7 @@
     <div>
       <textarea id="src"></textarea>
       <button>Run</button>
+      <input id="verbose" type="checkbox" value="1" unchecked /> Verbose
     </div>
     <div>
       <textarea id="tokenized"></textarea>
