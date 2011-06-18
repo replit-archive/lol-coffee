@@ -61,13 +61,13 @@ class Value
   # using the LOLCODE casting rules defined in teh 1.2 spec. If explicit is set,
   # null is allowed to be casted, returning the default value of the given type.
   cast: (to_type, explicit = false) ->
-    if to_type is 'null' then throw new MachineError 'Cannot cast tp NOOB'
+    if to_type is 'null' then throw new MachineError 'Cannot cast to NOOB'
     result = null
     switch @type
       when 'null'
         if explicit
           if to_type not of window.LOLCoffee.DEFAULT_VALUES
-            throw new MachineError 'Unknown type ' + to_type
+            throw new MachineError 'Unknown type: ' + to_type
           result = window.LOLCoffee.DEFAULT_VALUES[to_type]
         else
           unless to_type is 'bool'
@@ -97,11 +97,11 @@ class Value
           when 'bool' then @value != ''
           when 'int'
             unless /^-?\d+$/.test @value
-              throw new MachineError "Cannot parse integer from '#{@value}'"
+              throw new MachineError "Cannot parse NUMBR from '#{@value}'"
             parseInt @value, 10
           when 'float'
             unless /^-?(\d+(\.\d*)?|\.\d+)$/.test @value
-              throw new MachineError "Cannot parse float from '#{@value}'"
+              throw new MachineError "Cannot parse NUMBAR from '#{@value}'"
             parseFloat @value
           when 'string' then @value
           else throw new MachineError 'Unknown type: ' + to_type
@@ -169,6 +169,40 @@ class Assign
     else
       throw new MachineError 'Assignment to undefined variable: ' + @identifier
 
+# An assinment-at-index instruction. Sets the value of its variable at the index
+# popped from the stack to the value popped from the stack. Uses the same lookup
+# rules as Assign.
+class AssignAtIndex
+  constructor: (@identifier) ->
+  exec: (machine) ->
+    global_vars = machine.frame_stack[0].variables
+    local_vars = machine.frame_stack[-1..][0].variables
+
+    if @identifier of local_vars
+      scope = local_vars
+    else if @identifier of global_vars
+      scope = global_vars
+    else
+      throw new MachineError 'Assignment to undefined variable: ' + @identifier
+
+    base = scope[@identifier]
+    index = machine.data_stack.pop()
+    value = machine.data_stack.pop()
+
+    if base.type isnt 'string'
+      throw new MachineError 'Can only index YARNs, not ' + base.type
+    if index.type isnt 'int'
+      throw new MachineError 'Can only index using NUMBRs, not ' + index.type
+    if index.value >= base.value.length
+      throw new MachineError "Out of bounds: '#{base.value}'[#{index.value}]"
+    if value.type isnt 'string' or value.value.length isnt 1
+      throw new MachineError('Can only assign single-character YARNs to YARN ' +
+                             'indices, not ' + value.value)
+
+    base = base.value
+    result = base[...index.value] + value.value + base[index.value + 1..]
+    scope[@identifier] = new Value 'string', result
+
 # An input instruction. Pauses the machine and calls its input callback.
 class Input
   exec: (machine) ->
@@ -206,6 +240,21 @@ class PushVariable
     else
       throw new MachineError 'Reference to undefined variable: ' + @identifier
     machine.data_stack.push value
+
+# An indexing instruction. Pops base and index and pushes the index'th character
+# of the base.
+class GetIndex
+  constructor: ->
+  exec: (machine) ->
+    base = machine.data_stack.pop()
+    index = machine.data_stack.pop()
+    if base.type isnt 'string'
+      throw new MachineError 'Can only index YARNs, not ' + base.type
+    if index.type isnt 'int'
+      throw new MachineError 'Can only index using NUMBRs, not ' + index.type
+    if index.value >= base.value.length
+      throw new MachineError "Out of bounds: '#{base.value}'[#{index.value}]"
+    machine.data_stack.push new Value 'string', base.value[index.value]
 
 # A literal pushing instruction. Pushes a typed literal value onto the stack.
 class PushLiteral
@@ -382,6 +431,36 @@ class Invert
     operand = machine.data_stack.pop().cast('bool').value
     machine.data_stack.push new Value 'bool', not operand
 
+# A unary length operator instruction. Pushes the length of the value popped
+# from the stack.
+class GetLength
+  exec: (machine) ->
+    operand = machine.data_stack.pop()
+    if operand.type isnt 'string'
+      throw new MachineError 'Can only get length of YARNs'
+    machine.data_stack.push new Value 'int', operand.value.length
+
+# A unary character code conversion operator instruction. Pushes the character
+# expressed by the character code popped from the stack.
+class FromCharCode
+  exec: (machine) ->
+    operand = machine.data_stack.pop()
+    if operand.type isnt 'int'
+      throw new MachineError('Character codes must be NUMBRs, not ' +
+                             operand.type)
+    str = String.fromCharCode operand.value
+    machine.data_stack.push new Value 'string', str
+
+# A unary character code conversion operator instruction. Pushes the character
+# code of the character at the beginning of the string popped from the stack.
+class ToCharCode
+  exec: (machine) ->
+    operand = machine.data_stack.pop()
+    if operand.type isnt 'string' or not operand.value.length
+      throw new MachineError('Can only take character code of non-empty ' + 
+                             "YARNs, not '#{operand.type}'")
+    machine.data_stack.push new Value 'int', operand.value.charCodeAt 0
+
 # A virtual machine for running LOLCoffee instructions. The constructor receives
 # a codegen context and an optional set of callbacks for I/O, error reporting
 # and halt notification. Programs generated in the provided context are
@@ -392,7 +471,14 @@ class Machine
     # Live references to the instructions and labels of the context.
     @instructions = @context.instructions
     @labels = @context.labels
-    # Machine-specific state.
+    # Initialize machine-specific state.
+    @reset()
+    # Default no-op I/O callbacks.
+    @input = @input or => @resume()
+    @output = @output or => @resume()
+
+  # Resets the machine's state, e.g. to recover from errors and restart.
+  reset: ->
     @instruction_ptr = 0
     @data_stack = []
     @frame_stack = [new Frame 0, 0, IT: new Value('null', null)]
@@ -400,9 +486,6 @@ class Machine
     @halted = true
     @blocked = false
     @syscall_result = null
-    # Default no-op I/O callbacks.
-    @input = @input or => @resume()
-    @output = @output or => @resume()
 
   # Executes the next instruction and increments the instruction pointer.
   step: ->
@@ -440,11 +523,13 @@ window.LOLCoffee.Instructions =
   Jump: Jump
   DeclareVariable: DeclareVariable
   Assign: Assign
+  AssignAtIndex: AssignAtIndex
   Return: Return
   Input: Input
   PushSyscallResult: PushSyscallResult
   Output: Output
   PushVariable: PushVariable
+  GetIndex: GetIndex
   Cast: Cast
   JumpIfZero: JumpIfZero
   Call: Call
@@ -464,3 +549,6 @@ window.LOLCoffee.Instructions =
   Equal: Equal
   Unequal: Unequal
   Invert: Invert
+  GetLength: GetLength
+  FromCharCode: FromCharCode
+  ToCharCode: ToCharCode

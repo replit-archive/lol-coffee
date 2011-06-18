@@ -10,6 +10,7 @@ hierarchy rooted at LOLCoffee.AST.Node:
       Input
       Output
       Assignment
+      IndexedAssignment
       Break
       Loop
       Conditional
@@ -17,6 +18,7 @@ hierarchy rooted at LOLCoffee.AST.Node:
       StatementList
       Expression
         IdentifierExpression
+        IndexingExpression
         CastExpression
         CallExpression
         UnaryExpression
@@ -155,10 +157,19 @@ class Declaration extends Statement
 # An assignment statement. A value evaluation followed by an assignment
 # instruction.
 class Assignment extends Statement
-  constructor: (@identifier, @expression) ->
+  constructor: (@identifier, @value) ->
   codegen: (context) ->
-    @expression.codegen context
+    @value.codegen context
     context.emit new Instructions.Assign @identifier
+
+# An index assignment statement. Value and evaluations followed by an assignment
+# at index instruction.
+class IndexedAssignment extends Statement
+  constructor: (@identifier, @index, @value) ->
+  codegen: (context) ->
+    @value.codegen context
+    @index.codegen context
+    context.emit new Instructions.AssignAtIndex @identifier
 
 # A break statement. An jump to the nearest loop/switch context end label.
 class Break extends Statement
@@ -255,6 +266,15 @@ class IdentifierExpression extends Expression
   codegen: (context) ->
     context.emit new Instructions.PushVariable @identifier
 
+# An indexing expression. Evaluates the index, then the base and then applies
+# the index to the base usign an indexing instruction.
+class IndexingExpression extends Expression
+  constructor: (@base, @index) ->
+  codegen: (context) ->
+    @index.codegen context
+    @base.codegen context
+    context.emit new Instructions.GetIndex
+
 # A cast expression. Translated directly to a cast instruction.
 class CastExpression extends Expression
   constructor: (@expression, @type) ->
@@ -307,13 +327,16 @@ class BinaryExpression extends Expression
     context.emit op
 
 # An n-ary expression with variable N. Generates its operand then the
-# appropriate instruction depending on the operator, currently only "NOT".
+# appropriate instruction depending on the operator.
 class UnaryExpression extends Expression
   constructor: (@operator, @operand) ->
   codegen: (context) ->
     @operand.codegen context
     op = switch @operator
       when 'NOT' then new Instructions.Invert
+      when 'LENGZ OF' then new Instructions.GetLength
+      when 'CHARZ OF' then new Instructions.FromCharCode
+      when 'ORDZ OF' then new Instructions.ToCharCode
       else throw new CodeGenError 'Unknown unary operator.'
     context.emit op
 
@@ -362,6 +385,7 @@ window.LOLCoffee.AST =
   Input: Input
   Output: Output
   Assignment: Assignment
+  IndexedAssignment: IndexedAssignment
   Break: Break
   Loop: Loop
   Conditional: Conditional
@@ -369,6 +393,7 @@ window.LOLCoffee.AST =
   StatementList: StatementList
   Expression: Expression
   IdentifierExpression: IdentifierExpression
+  IndexingExpression: IndexingExpression
   CastExpression: CastExpression
   CallExpression: CallExpression
   UnaryExpression: UnaryExpression

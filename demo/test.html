@@ -58,7 +58,7 @@
           }, function(error) {
             if (!/\n$/.test(resultBox.value)) resultBox.value += '\n';
             resultBox.value += '=================  FAIL  =================\n';
-            resultBox.value += error;
+            resultBox.value += error + '\n' + inspect(machine.frame_stack);
           }, function() {
             if (!/\n$/.test(resultBox.value)) resultBox.value += '\n';
             resultBox.value += '=================  DONE  =================';
@@ -95,6 +95,8 @@
       <textarea id="codegened"></textarea>
       <textarea id="result"></textarea>
     </div>
+    
+    
     <pre id="tests">
 OBTW
   Tests from http://asgaard.co.uk/misc/loljs/
@@ -150,7 +152,7 @@ HOW DUZ I RUN_TEST_2       BTW Strings
   VISIBLE STR
   BTW unicode
   VISIBLE "---"
-  VISIBLE "I LIKE :(03C0)"
+  VISIBLE "I :(2764) :(03C0)"
 
   BTW escaping works by the : character.
   BTW escaping a quote:
@@ -310,78 +312,74 @@ HOW DUZ I RUN_TEST_9       BTW Switch Case
   OIC
 IF U SAY SO
 
-OBTW
-  BTW Brainfuck interpreter
-  BTW Disabled until string indexing/length extension is added.
-  HOW DUZ I INTERPRET YR PROGRAM
-    I HAS A TAPE ITZ GOT NOTHIN
-    I HAS A COUNTER ITZ 0
-    BTW Initialise the tape
-    IM IN YR LOOP UPPIN YR COUNTER WILE BOTH SAEM BIGGR OF COUNTER AN 30000 AN 30000
-      TAPE!COUNTER R 0
-    IM OUTTA YR LOOP
+HOW DUZ I INTERPRET YR PROGRAM
+  BTW Initialise the tape
+  I HAS A TAPE ITZ ":(0)"
+  I HAS A COUNTER ITZ 0
+  IM IN YR LOOP UPPIN YR COUNTER...
+  WILE BOTH SAEM BIGGR OF COUNTER AN 15 AN 15
+    TAPE R SMOOSH TAPE AN TAPE
+  IM OUTTA YR LOOP
 
-    I HAS A TAPEPTR ITZ 0
-    I HAS A INPUTPTR ITZ 0
-    COUNTER R 0
+  I HAS A TAPEPTR ITZ 0
+  I HAS A INPUTPTR ITZ 0
+  COUNTER R 0
 
-    IM IN YR LOOP UPPIN YR COUNTER WILE BOTH SAEM SMALLR OF COUNTER AN LEN OF PROGRAM AN COUNTER
-      I HAS A C ITZ PROGRAM!COUNTER
-      C, WTF?
-        OMG ">", TAPEPTR R SUM OF TAPEPTR AN 1, GTFO
-        OMG "&lt;", TAPEPTR R DIFF OF TAPEPTR AN 1, GTFO
-        OMG "+", TAPE!TAPEPTR R SUM OF TAPE!TAPEPTR AN 1, GTFO
-        OMG "-", TAPE!TAPEPTR R DIFF OF TAPE!TAPEPTR AN 1, GTFO
-        OMG ".", VISIBLE CHR OF TAPE!TAPEPTR !, GTFO
-        OMG ","
-          I HAS A CHAR
-          I HAS A NUM
-          GIMMEH CHAR
-          NUM R ORD OF CHAR
-          TAPE!TAPEPTR R NUM
-          GTFO
-        OMG "["
-          NOT BOTH SAEM TAPE!TAPEPTR AN 0, O RLY?
-            YA RLY, GTFO
+  IM IN YR LOOP UPPIN YR COUNTER...
+  WILE BOTH SAEM SMALLR OF COUNTER AN DIFF OF LENGZ OF PROGRAM AN 1 AN COUNTER
+    I HAS A C ITZ PROGRAM AT COUNTER
+    C, WTF?
+      OMG ">", TAPEPTR R SUM OF TAPEPTR AN 1, GTFO
+      OMG "&lt;", TAPEPTR R DIFF OF TAPEPTR AN 1, GTFO
+      OMG "+", PUTZ CHARZ OF SUM OF ORDZ OF TAPE AT TAPEPTR AN 1 INTA TAPE AT TAPEPTR, GTFO
+      OMG "-", PUTZ CHARZ OF DIFF OF ORDZ OF TAPE AT TAPEPTR AN 1 INTA TAPE AT TAPEPTR , GTFO
+      OMG ".", VISIBLE TAPE AT TAPEPTR !, GTFO
+      OMG ","
+        I HAS A CHAR
+        GIMMEH CHAR
+        PUTZ CHAR INTA TAPE AT COUNTER
+        GTFO
+      OMG "["
+        NOT BOTH SAEM ORDZ OF TAPE AT TAPEPTR AN 0, O RLY?
+          YA RLY, GTFO
+        OIC
+      OMG "]"
+        BOTH SAEM 0 AN ORDZ OF TAPE AT TAPEPTR, O RLY?
+          YA RLY, GTFO
+        OIC
+
+        I HAS A STACK ITZ 0
+        I HAS A DIR ITZ 1
+        BOTH SAEM C AN "]", O RLY?
+          YA RLY, DIR R -1
+        OIC
+
+        IM IN YR LOOP
+          COUNTER R SUM OF COUNTER AN DIR
+
+          EITHER OF BOTH SAEM COUNTER AN -1 AN BOTH SAEM COUNTER AN LENGZ OF PROGRAM, O RLY?
+            YA RLY
+              VISIBLE "YOUR BRACKETS DIDN'T MATCH."
+              FOUND YR 0
+
+            MEBBE BOTH SAEM PROGRAM AT COUNTER AN C
+              STACK R SUM OF STACK AN 1
+
+            MEBBE EITHER OF BOTH SAEM PROGRAM AT COUNTER AN "]" AN BOTH SAEM PROGRAM AT COUNTER AN "["
+              BOTH SAEM STACK AN 0, O RLY?
+                YA RLY, GTFO
+                NO WAI, STACK R DIFF OF STACK AN 1
+              OIC
           OIC
-        OMG "]"
-          BOTH SAEM 0 AN TAPE!TAPEPTR, O RLY?
-            YA RLY, GTFO
-          OIC
-
-          I HAS A STACK ITZ 0
-          I HAS A DIR ITZ 1
-          BOTH SAEM C AN "]", O RLY?
-            YA RLY, DIR R -1
-          OIC
-
-          IM IN YR LOOP
-            COUNTER R SUM OF COUNTER AN DIR
-
-            EITHER OF BOTH SAEM COUNTER AN -1 AN BOTH SAEM COUNTER AN LEN OF PROGRAM, O RLY?
-              YA RLY
-                VISIBLE "YOUR BRACKETS DIDN'T MATCH."
-                FOUND YR 0
-
-              MEBBE BOTH SAEM PROGRAM!COUNTER AN C
-                STACK R SUM OF STACK AN 1
-
-              MEBBE EITHER OF BOTH SAEM PROGRAM!COUNTER AN "]" AN BOTH SAEM PROGRAM!COUNTER AN "["
-                BOTH SAEM STACK AN 0, O RLY?
-                  YA RLY, GTFO
-                  NO WAI, STACK R DIFF OF STACK AN 1
-                OIC
-            OIC
-          IM OUTTA YR LOOP
-      OIC
-    IM OUTTA YR LOOP
-  IF U SAY SO
-  HOW DUZ I RUN_TEST_10
-    VISIBLE "================= TEST 10 ================="
-    I HAS A PROGRAM ITZ "++++++++++[>+++++++>++++++++++>+++>+&lt;&lt;&lt;&lt;-]>++.>+.+++++++..+++.>++.&lt;&lt;+++++++++++++++.>.+++.------.--------.>+.>."
-    INTERPRET PROGRAM
-  IF U SAY SO
-TLDR
+        IM OUTTA YR LOOP
+    OIC
+  IM OUTTA YR LOOP
+IF U SAY SO
+HOW DUZ I RUN_TEST_10      BTW Brainfuck interpreter
+  VISIBLE "================= TEST 10 ================="
+  I HAS A PROGRAM ITZ "++++++++++[>+++++++>++++++++++>+++>+&lt;&lt;&lt;&lt;-]>++.>+.+++++++..+++.>++.&lt;&lt;+++++++++++++++.>.+++.------.--------.>+.>."
+  INTERPRET PROGRAM
+IF U SAY SO
 
 HOW DUZ I RUN_ALL_TESTS
   RUN_TEST_1
@@ -393,7 +391,7 @@ HOW DUZ I RUN_ALL_TESTS
   RUN_TEST_7
   RUN_TEST_8
   RUN_TEST_9
-  BTW RUN_TEST_10
+  RUN_TEST_10
 IF U SAY SO
 
 RUN_ALL_TESTS

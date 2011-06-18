@@ -127,6 +127,8 @@ class Parser
       statement = @parseInputStatement()
     else if @_nextIs 'keyword', 'VISIBLE'
       statement = @parseOutputStatement()
+    else if @_nextIs 'keyword', 'PUTZ'
+      statement = @parseIndexedAssignment()
     else if @_nextIs 'keyword', 'HOW DUZ I'
       if @_in_function then @_error 'Cannot define nested functions'
       statement = @parseFunctionDefinition()
@@ -185,6 +187,16 @@ class Parser
     variable = @_consume 'identifier'
     @_consume 'keyword', 'R'
     return new AST.Assignment variable, @parseExpression()
+
+  # IndexedAssignment ::= "PUTZ" Expression "INTA" IDENTIFIER "AT" Expression
+  parseIndexedAssignment: ->
+    @_consume 'keyword', 'PUTZ'
+    value = @parseExpression()
+    @_consume 'keyword', 'INTA'
+    identifier = @_consume 'identifier'
+    @_consume 'keyword', 'AT'
+    index = @parseExpression()
+    return new AST.IndexedAssignment identifier, index, value
 
   # LoopStatement ::= "IM IN YR" IDENTIFIER
   #                   [IDENTIFIER "YR" IDENTIFIER [("WILE" | "TIL") Expression]]
@@ -331,7 +343,8 @@ class Parser
 
     return new AST.Switch cases, default_case
 
-  # Expression ::= CastExpression | FunctionCall | IDENTIFIER | LITERAL
+  # Expression ::= CastExpression | FunctionCall | IDENTIFIER |
+  #                IDENTIFIER "AT" Expression | LITERAL
   parseExpression: ->
     if @_nextIs 'keyword'
       keyword = @tokens[0].text
@@ -348,10 +361,15 @@ class Parser
       else
         @_error 'Invalid keyword at start of expression'
     else if @_nextIs 'identifier'
-      if @tokens[0].text of @function_arities
-        return @parseFunctionCall()
+      base = if @tokens[0].text of @function_arities
+        @parseFunctionCall()
       else
-        return new AST.IdentifierExpression @_consume()
+        new AST.IdentifierExpression @_consume()
+      if @_nextIs 'keyword', 'AT'
+        @_consume()
+        return new AST.IndexingExpression base, @parseExpression()
+      else
+        return base
     else
       return @parseLiteral()
 

@@ -194,7 +194,7 @@ inspect = function(obj, showHidden, depth) {
 
     return output;
   }
-  return format(obj, (depth === undefined ? 10 : depth));
+  return format(obj, (depth === undefined ? 100 : depth));
 };
 
 

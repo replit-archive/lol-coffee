@@ -6,11 +6,8 @@ except for the following deviations:
 
 1. The `HAI`/`KTHXBYE` enclosing block is optional, for REPL friendliness.
 2. `BUKKIT` is a reserved word, in case arrays are introduced later.
-
-Planned but still unimplemented extensions to the standard are:
-
-1. String indexing rvalue, using `TAEK <index> OV DA <string>`.
-2. String indexing lvalue, using `<string> AT <index> IZ NAO <expression>`.
-3. String length, using `LEN OF <string>`.
-4. The ASCII code of the first character of a string, using `ORD OF <string>`.
-5. Convertion of ASCII codes to a string, using `CHR OF <string>`.
+3. String indexing rvalue, using `<string> AT <index>`.
+4. String indexing lvalue, using `PUTZ <expression> INTA <string> AT <index>`.
+5. String length, using `LENGZ OF <string>`.
+6. The ASCII code of the first character of a string, using `ORDZ OF <string>`.
+7. Convertion of ASCII codes to a string, using `CHARZ OF <string>`.
