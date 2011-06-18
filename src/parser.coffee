@@ -478,10 +478,10 @@ class Parser
 
     parts = []
     buffer = []
-    for char, index in str
-      if char is ':'
-        char = str[++index]
-        switch char
+    for chr, index in str
+      if chr is ':'
+        chr = str[++index]
+        switch chr
           when ')' then buffer.push '\n'
           when '>' then buffer.push '\t'
           when 'o' then buffer.push '\g'
@@ -501,7 +501,7 @@ class Parser
           when '['
             @_error 'Unicode name embedding not implemented yet: ' + str
       else
-       buffer.push char
+       buffer.push chr
 
     if parts.length
       if buffer.length then parts.push new AST.StringLiteral buffer.join ''
