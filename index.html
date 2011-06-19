@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>lol-coffee test</title>
+    <script src="jquery-1.6.1.min.js" type="text/javascript"></script>
+    <script src="console.js" type="text/javascript"></script>
+    <script src="lol-coffee.min.js" type="text/javascript"></script>
+    <script>
+      $(function() {
+        $('#src').val($('#tests').text().replace(/^\s+|\s+$/, '') + '\n');
+        $('button').click(function() {
+          $('#tokenized').val('');
+          $('#parsed').val('');
+          $('#codegened').val('');
+          $('#result').val('');
+          var src = $('#src').val();
+          var verbose = $('#verbose').is(':checked');
+
+          // Tokenize.
+          try {
+            var tokenized = new LOLCoffee.Tokenizer(src).tokenize();
+            if (verbose) $('#tokenized').val(inspect(tokenized));
+          } catch (e) {
+            $('#tokenized').val(e);
+            return;
+          }
+
+          // Parse.
+          try {
+            var parsed = new LOLCoffee.Parser(tokenized).parseProgram();
+            if (verbose) $('#parsed').val(inspect(parsed));
+          } catch (e) {
+            $('#parsed').val(e);
+            return;
+          }
+
+          // Codegen.
+          try {
+            codegen_context = new LOLCoffee.CodeGenContext();
+            parsed.codegen(codegen_context);
+            if (verbose) $('#codegened').val(inspect(codegen_context));
+          } catch (e) {
+            $('#codegened').val(e);
+            return;
+          }
+
+          // Run.
+          var resultBox = $('#result')[0];
+          var machine = new LOLCoffee.Machine(codegen_context, function() {
+            machine.resume(prompt('LOLWUT?'));
+          }, function(text) {
+            resultBox.value += text;
+            machine.resume();
+          }, function(error) {
+            if (!/\n$/.test(resultBox.value)) resultBox.value += '\n';
+            resultBox.value += '=================  FAIL  =================\n';
+            resultBox.value += error + '\nCall stack:\n';
+            for (var i = machine.frames.length - 1; i >= 0; i--) {
+              resultBox.value += '  ' + machine.frames[i].name + '\n';
+            }
+          }, function() {
+            if (!/\n$/.test(resultBox.value)) resultBox.value += '\n';
+            resultBox.value += '=================  DONE  =================';
+          });
+          machine.run();
+        });
+      });
+    </script>
+    <style>
+      div {
+        text-align: center;
+      }
+      textarea {
+        height: 20em;
+        width: 49%;
+        overflow: auto;
+      }
+      #src {
+        width: 99%;
+      }
+      #tests {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <textarea id="src"></textarea>
+      <button>Run</button>
+      <input id="verbose" type="checkbox" value="1" unchecked /> Verbose
+    </div>
+    <div>
+      <textarea id="tokenized"></textarea>
+      <textarea id="parsed"></textarea>
+      <textarea id="codegened"></textarea>
+      <textarea id="result"></textarea>
+    </div>
+    <pre id="tests">
+OBTW
+  Tests from http://asgaard.co.uk/misc/loljs/
+  Copyright (c) &lt;2010&gt;, Mark Watkinson
+  All rights reserved.
+  Used under the BSD license.
+TLDR
+
+HAI 1.2
+
+HOW DUZ I RUN_TEST_1       BTW Square Root
+  VISIBLE "================= TEST 1 ================="
+  I HAS A NUMBER
+  GIMMEH NUMBER
+  NUMBER IS NOW A NUMBAR
+  I HAS A IMAGINARY ITZ FAIL
+
+  DIFFRINT NUMBER AN BIGGR OF NUMBER AN 0.0, O RLY?
+    YA RLY
+        NUMBER R PRODUKT OF NUMBER AN -1
+        IMAGINARY R WIN
+  OIC
+
+  I HAS A X_N ITZ 10
+  I HAS A LIMIT ITZ 100
+  I HAS A COUNTER ITZ 0
+  IM IN YR LOOP UPPIN YR COUNTER WILE DIFFRINT COUNTER AN BIGGR OF COUNTER AN LIMIT
+    I HAS A TERM ITZ QUOSHUNT OF NUMBER AN X_N
+    TERM R SUM OF X_N AN TERM
+    TERM R QUOSHUNT OF TERM AN 2
+    X_N R TERM
+    IM OUTTA YR LOOP
+
+  BOTH SAEM IMAGINARY AN WIN, O RLY?
+    YA RLY
+      BOTH SAEM 1 AN X_N, O RLY?
+        YA RLY
+          X_N R "i"
+        NO WAI
+          X_N R SMOOSH "(" AN X_N AN "i)" MKAY
+    OIC
+  OIC
+
+  VISIBLE SMOOSH "sqrt(" AN NUMBER AN ") ~ ±" AN X_N
+IF U SAY SO
+
+HOW DUZ I RUN_TEST_2       BTW Strings
+  VISIBLE "================= TEST 2 ================="
+  BTW we're going to look at some escape sequences
+  I HAS A VAR ITZ 12
+  BTW interpolation
+  I HAS A STR ITZ "MY VAR IS :{VAR}"
+  VISIBLE STR
+  BTW unicode
+  VISIBLE "---"
+  VISIBLE "I :(2764) :(03C0)"
+
+  BTW escaping works by the : character.
+  BTW escaping a quote:
+  VISIBLE "---"
+  VISIBLE "I SAID :"hello:" to him"
+  BTW escaping newlines, and tabs
+  VISIBLE "---"
+  VISIBLE "I SAID:):>:"hello:":)to him"
+IF U SAY SO
+
+HOW DUZ I XOR YR ARG1 AN YR ARG2
+  I HAS A X ITZ NOT BOTH SAEM ARG1 AN ARG2
+  X R BOTH OF X AN EITHER OF ARG1 AN ARG2
+  FOUND YR X
+IF U SAY SO
+HOW DUZ I RUN_TEST_3       BTW Operators
+  VISIBLE "================= TEST 3 ================="
+  BTW operators use prefix notation which looks like this:
+  I HAS A X
+  BTW (1*2) + (3/4)
+  X R SUM OF PRODUKT OF 1 AN 2 AN QUOSHUNT OF 3 AN 4
+  VISIBLE "X IS :{X}"
+
+  BTW there are also some infinite arity operators (terminated by MKAY):
+  BTW here we nest the nary ANY OF inside the binary BOTH SAEM
+
+  VISIBLE BOTH SAEM ANY OF WIN AN FAIL AN FAIL AN FAIL MKAY AN WIN
+
+  BTW we can define our own functions which work a lot like operators
+  BTW we can nest function calls inside operator expressions:
+  BTW define an XOR
+
+  BTW SMOOSH is an infinite arity concatenation operator
+  VISIBLE SMOOSH "XOR 1 AN 0 = " AN XOR 1 0 MKAY
+
+  BTW now we use the function in a more complex expression:
+  BTW this reads: 'xor(0+1, 0) + 2' = 3
+  VISIBLE SUM OF XOR SUM OF 0 AN 1 0 AN 2
+IF U SAY SO
+
+HOW DUZ I ADD YR NUM1 AN YR NUM2
+  SUM OF NUM1 AN NUM2
+IF U SAY SO
+HOW DUZ I DIVIDE YR NUM1 AN YR NUM2
+  I HAS A ANSWER ITZ QUOSHUNT OF NUM1 AN NUM2
+  FOUND YR ANSWER
+IF U SAY SO
+HOW DUZ I RUN_TEST_4       BTW Functions
+  VISIBLE "================= TEST 4 ================="
+  BTW let's use the function:
+  I HAS A NUMBER ITZ DIVIDE 20 10
+  VISIBLE NUMBER
+  NUMBER R ADD 20 10
+  VISIBLE NUMBER
+IF U SAY SO
+
+HOW DUZ I RUN_TEST_5       BTW If conditions
+  VISIBLE "================= TEST 5 ================="
+  I HAS A ANIMAL
+  GIMMEH ANIMAL
+  BOTH SAEM ANIMAL AN "CAT", O RLY?
+    YA RLY
+      VISIBLE "J00 HAV A CAT"
+    MEBBE BOTH SAEM ANIMAL AN "MAUS"
+      VISIBLE "NOM NOM NOM. I EATED IT."
+    NO WAI
+      VISIBLE "J00 SUX"
+  OIC
+IF U SAY SO
+
+HOW DUZ I RUN_TEST_6       BTW Iterative Fibonacci
+  VISIBLE "================= TEST 6 ================="
+  I HAS A TARGET ITZ 100
+  I HAS A COUNTER ITZ 2
+  I HAS A NUMBR1 ITZ 0
+  I HAS A NUMBR2 ITZ 1
+  VISIBLE SMOOSH 0 ":: " NUMBR1
+  VISIBLE SMOOSH 1 ":: " NUMBR2
+  IM IN YR LOOP UPPIN YR COUNTER TIL BOTH SAEM COUNTER AN TARGET
+    I HAS A NUMBR_TMP ITZ SUM OF NUMBR1 AN NUMBR2
+    NUMBR1 R NUMBR2
+    NUMBR2 R NUMBR_TMP
+    VISIBLE SMOOSH COUNTER ":: " NUMBR_TMP
+  IM OUTTA YR LOOP
+IF U SAY SO
+
+HOW DUZ I FACTORIAL YR NUMBER
+  BOTH SAEM 0 AN BIGGR OF NUMBER AN 0, O RLY?
+    YA RLY
+      FOUND YR 1
+    NO WAI
+      FOUND YR PRODUKT OF NUMBER AN FACTORIAL DIFF OF NUMBER AN 1
+  OIC
+IF U SAY SO
+HOW DUZ I RUN_TEST_7       BTW Recursive Factorial
+  VISIBLE "================= TEST 7 ================="
+  I HAS A NUMBER
+  GIMMEH NUMBER
+  NUMBER IS NOW A NUMBR BTW WE JUST CASTED TO NUMBER
+  BTW WE GOTTA CHECK ITS BIGGR THAN 0 BECOZ FACTORIAL ISNT DEFINED FOR LESS THAN 0 OMG
+  BOTH SAEM 0 AN BIGGR OF NUMBER AN 0, O RLY?
+    YA RLY
+      NUMBER R 0
+  OIC
+
+  NUMBER R FACTORIAL NUMBER
+  VISIBLE SMOOSH "I FOUND UR FACTORIAL ITS " NUMBER
+IF U SAY SO
+
+HOW DUZ I RUN_TEST_8       BTW PI Calculation
+  VISIBLE "================= TEST 8 ================="
+  OBTW WE'RE GOING TO CALCULATE PI TODAY USING AN APPROXIMATION ALGORITHM CONSISTING OF CALCULATING THE SUM OF
+    THE FOLLOWING SERIES:
+
+    4 * SUM OF  [   (-1)^k            k ∈ N
+                    2*k + 1   ]
+
+    WE GO UP TO K=1000
+  TLDR
+
+  I HAS A LIMIT ITZ 1000.0
+  I HAS A K ITZ 0.0
+  I HAS A PI_APPROXIMATION ITZ 0.0
+
+  IM IN YR LOOP UPPIN YR K WILE NOT BOTH SAEM K AN LIMIT
+    I HAS A NUMERATOR
+    I HAS A EVEN ITZ MOD OF K AN 2
+    NOT EVEN, O RLY?
+      YA RLY, NUMERATOR R 1
+      NO WAI, NUMERATOR R -1
+    OIC
+    I HAS A DENOMINATOR ITZ PRODUKT OF 2 AN K
+    DENOMINATOR R SUM OF DENOMINATOR AN 1
+    I HAS A TERM ITZ QUOSHUNT OF NUMERATOR AN DENOMINATOR
+    PI_APPROXIMATION R SUM OF PI_APPROXIMATION AN TERM
+  IM OUTTA YR LOOP
+  PI_APPROXIMATION R PRODUKT OF PI_APPROXIMATION AN 4
+  VISIBLE "PI IS "!
+  VISIBLE PI_APPROXIMATION
+IF U SAY SO
+
+HOW DUZ I RUN_TEST_9       BTW Switch Case
+  VISIBLE "================= TEST 9 ================="
+  I HAS A COLOR ITZ "Y"
+  COLOR, WTF?
+    OMG "R"
+      VISIBLE "RED FISH"
+      GTFO
+    OMG "Y"
+      VISIBLE "YELLOW FISH"
+    OMG "G"
+    OMG "B"
+      VISIBLE "FISH HAS A FLAVOR"
+      GTFO
+    OMGWTF
+      VISIBLE "FISH IS TRANSPARENT"
+  OIC
+IF U SAY SO
+
+HOW DUZ I INTERPRET YR PROGRAM
+  BTW Initialise the tape
+  I HAS A TAPE ITZ ":(0)"
+  I HAS A COUNTER ITZ 0
+  IM IN YR LOOP UPPIN YR COUNTER...
+  WILE BOTH SAEM BIGGR OF COUNTER AN 15 AN 15
+    TAPE R SMOOSH TAPE AN TAPE
+  IM OUTTA YR LOOP
+
+  I HAS A TAPEPTR ITZ 0
+  I HAS A INPUTPTR ITZ 0
+  COUNTER R 0
+
+  IM IN YR LOOP UPPIN YR COUNTER...
+  WILE BOTH SAEM SMALLR OF COUNTER AN DIFF OF LENGZ OF PROGRAM AN 1 AN COUNTER
+    I HAS A C ITZ PROGRAM AT COUNTER
+    C, WTF?
+      OMG ">", TAPEPTR R SUM OF TAPEPTR AN 1, GTFO
+      OMG "&lt;", TAPEPTR R DIFF OF TAPEPTR AN 1, GTFO
+      OMG "+", PUTZ CHARZ OF SUM OF ORDZ OF TAPE AT TAPEPTR AN 1 INTA TAPE AT TAPEPTR, GTFO
+      OMG "-", PUTZ CHARZ OF DIFF OF ORDZ OF TAPE AT TAPEPTR AN 1 INTA TAPE AT TAPEPTR , GTFO
+      OMG ".", VISIBLE TAPE AT TAPEPTR !, GTFO
+      OMG ","
+        I HAS A CHAR
+        GIMMEH CHAR
+        PUTZ CHAR INTA TAPE AT COUNTER
+        GTFO
+      OMG "["
+        NOT BOTH SAEM ORDZ OF TAPE AT TAPEPTR AN 0, O RLY?
+          YA RLY, GTFO
+        OIC
+      OMG "]"
+        BOTH SAEM 0 AN ORDZ OF TAPE AT TAPEPTR, O RLY?
+          YA RLY, GTFO
+        OIC
+
+        I HAS A STACK ITZ 0
+        I HAS A DIR ITZ 1
+        BOTH SAEM C AN "]", O RLY?
+          YA RLY, DIR R -1
+        OIC
+
+        IM IN YR LOOP
+          COUNTER R SUM OF COUNTER AN DIR
+
+          EITHER OF BOTH SAEM COUNTER AN -1 AN BOTH SAEM COUNTER AN LENGZ OF PROGRAM, O RLY?
+            YA RLY
+              VISIBLE "YOUR BRACKETS DIDN'T MATCH."
+              FOUND YR 0
+
+            MEBBE BOTH SAEM PROGRAM AT COUNTER AN C
+              STACK R SUM OF STACK AN 1
+
+            MEBBE EITHER OF BOTH SAEM PROGRAM AT COUNTER AN "]" AN BOTH SAEM PROGRAM AT COUNTER AN "["
+              BOTH SAEM STACK AN 0, O RLY?
+                YA RLY, GTFO
+                NO WAI, STACK R DIFF OF STACK AN 1
+              OIC
+          OIC
+        IM OUTTA YR LOOP
+    OIC
+  IM OUTTA YR LOOP
+IF U SAY SO
+HOW DUZ I RUN_TEST_10      BTW Brainfuck interpreter
+  VISIBLE "================= TEST 10 ================="
+  I HAS A PROGRAM ITZ "++++++++++[>+++++++>++++++++++>+++>+&lt;&lt;&lt;&lt;-]>++.>+.+++++++..+++.>++.&lt;&lt;+++++++++++++++.>.+++.------.--------.>+.>."
+  INTERPRET PROGRAM
+IF U SAY SO
+
+HOW DUZ I RUN_ALL_TESTS
+  RUN_TEST_1
+  RUN_TEST_2
+  RUN_TEST_3
+  RUN_TEST_4
+  RUN_TEST_5
+  RUN_TEST_6
+  RUN_TEST_7
+  RUN_TEST_8
+  RUN_TEST_9
+  RUN_TEST_10
+IF U SAY SO
+
+RUN_ALL_TESTS
+
+KTHXBYE
+    </pre>
+  </body>
+</html>
