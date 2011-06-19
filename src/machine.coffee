@@ -168,6 +168,8 @@ class Assign
       local_vars[@identifier] = value
     else if @identifier of global_vars
       global_vars[@identifier] = value
+    else if machine.auto_declare
+      local_vars[@identifier] = value
     else
       throw new MachineError 'Assignment to undefined variable: ' + @identifier
 
@@ -184,6 +186,8 @@ class AssignAtIndex
       scope = local_vars
     else if @identifier of global_vars
       scope = global_vars
+    else if machine.auto_declare
+      scope = local_vars
     else
       throw new MachineError 'Assignment to undefined variable: ' + @identifier
 
@@ -462,19 +466,24 @@ class ToCharCode
 
 # A virtual machine for running LOLCoffee instructions. The constructor receives
 # a codegen context and an optional set of callbacks for I/O, error reporting
-# and halt notification. Programs generated in the provided context are
+# and halt notification. If auto_declare is provided and true, assignments to
+# undeclared variables automatically create local declarations. This is useful
+# in REPL contexts. It can also Programs generated in the provided context are
 # automatically loaded and ready for execution. The context is used only for
 # reading so it is safe to use a single context for multiple machines.
 class Machine
-  constructor: (@context, @input, @output, @error = (->), @done = (->)) ->
+  constructor: (@context, @input, @output, @error, @done, @auto_declare) ->
     # Live references to the instructions and labels of the context.
     @instructions = @context.instructions
     @labels = @context.labels
     # Initialize machine-specific state.
     @reset()
-    # Default no-op I/O callbacks.
+    # Default settings.
     @input = @input or => @resume()
     @output = @output or => @resume()
+    @error = @error or ->
+    @done = @done or ->
+    @auto_declare = @auto_declare or false
 
   # Resets the machine's state, e.g. to recover from errors and restart.
   reset: ->
