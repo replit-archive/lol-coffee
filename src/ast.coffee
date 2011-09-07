@@ -61,7 +61,7 @@ Requires:
 ###
 
 # Imports.
-Instructions = window.LOLCoffee.Instructions
+Instructions = @LOLCoffee.Instructions
 
 # The type of error thrown by the code generator.
 class CodeGenError extends Error
@@ -373,9 +373,9 @@ class StringLiteral extends Literal
     context.emit new Instructions.PushLiteral 'string', @value
 
 # Exports.
-window.LOLCoffee.CodeGenError = CodeGenError
-window.LOLCoffee.CodeGenContext = CodeGenContext
-window.LOLCoffee.AST =
+@LOLCoffee.CodeGenError = CodeGenError
+@LOLCoffee.CodeGenContext = CodeGenContext
+@LOLCoffee.AST =
   Node: Node
   Program: Program
   Statement: Statement

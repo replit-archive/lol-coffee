@@ -35,7 +35,12 @@ Provides:
   LOLCoffee.Machine
   LOLCoffee.MachineError
   LOLCoffee.Instructions
+
+Requires:
+  LOLCoffee.DEFAULT_VALUES
 ###
+
+DEFAULT_VALUES = @LOLCoffee.DEFAULT_VALUES
 
 # The type of error thrown by the virtual machine during execution.
 class MachineError extends Error
@@ -66,9 +71,9 @@ class Value
     switch @type
       when 'null'
         if explicit
-          if to_type not of window.LOLCoffee.DEFAULT_VALUES
+          if to_type not of DEFAULT_VALUES
             throw new MachineError 'Unknown type: ' + to_type
-          result = window.LOLCoffee.DEFAULT_VALUES[to_type]
+          result = DEFAULT_VALUES[to_type]
         else
           unless to_type is 'bool'
             throw new MachineError 'Cannot implicitly cast NOOB to ' + to_type
@@ -526,9 +531,9 @@ class Machine
     return @frames[@frames.length - 1].stack
 
 # Exports.
-window.LOLCoffee.Machine = Machine
-window.LOLCoffee.MachineError = MachineError
-window.LOLCoffee.Instructions =
+@LOLCoffee.Machine = Machine
+@LOLCoffee.MachineError = MachineError
+@LOLCoffee.Instructions =
   Halt: Halt
   PushLiteral: PushLiteral
   DeclareFunction: DeclareFunction

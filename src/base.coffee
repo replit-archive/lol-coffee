@@ -1,5 +1,16 @@
-# Root LOLCoffee object with some basic constants.
-window.LOLCoffee =
+###
+Root LOLCoffee object with some basic constants.
+
+Provides:
+  LOLCoffee
+  LOLCoffee.KEYWORDS
+  LOLCoffee.UNARY_OPERATORS
+  LOLCoffee.BINARY_OPERATORS
+  LOLCoffee.INFINITARY_OPERATORS
+  LOLCoffee.DEFAULT_VALUES
+###
+
+@LOLCoffee =
   KEYWORDS: [
     'IF U SAY SO'
     'IM OUTTA YR'

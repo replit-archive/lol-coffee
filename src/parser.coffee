@@ -32,10 +32,18 @@ Provides:
 
 Requires:
   LOLCoffee.AST
+  LOLCoffee.DEFAULT_VALUES
+  LOLCoffee.UNARY_OPERATORS
+  LOLCoffee.BINARY_OPERATORS
+  LOLCoffee.INFINITARY_OPERATORS
 ###
 
 # Imports.
-AST = window.LOLCoffee.AST
+AST = @LOLCoffee.AST
+DEFAULT_VALUES = @LOLCoffee.DEFAULT_VALUES
+UNARY_OPERATORS = @LOLCoffee.UNARY_OPERATORS
+BINARY_OPERATORS = @LOLCoffee.BINARY_OPERATORS
+INFINITARY_OPERATORS = @LOLCoffee.INFINITARY_OPERATORS
 
 # The type of error thrown by the parser.
 class ParserError extends Error
@@ -174,7 +182,7 @@ class Parser
       @_consume()
       if @_nextIs 'keyword', 'A'
         @_consume()
-        value = window.LOLCoffee.DEFAULT_VALUES[@parseType()]
+        value = DEFAULT_VALUES[@parseType()]
         assignment = new AST.Assignment variable, value
       else 
         assignment = new AST.Assignment variable, @parseExpression()
@@ -350,11 +358,11 @@ class Parser
       keyword = @tokens[0].text
       if keyword is 'MAEK'
         return @parseCastExpression()
-      else if keyword in window.LOLCoffee.UNARY_OPERATORS
+      else if keyword in UNARY_OPERATORS
         return @parseUnaryExpression()
-      else if keyword in window.LOLCoffee.BINARY_OPERATORS
+      else if keyword in BINARY_OPERATORS
         return @parseBinaryExpression()
-      else if keyword in window.LOLCoffee.INFINITARY_OPERATORS
+      else if keyword in INFINITARY_OPERATORS
         return @parseInfinitaryExpression()
       else if keyword in ['WIN', 'FAIL', 'NOOB']
         return @parseLiteral()
@@ -391,7 +399,7 @@ class Parser
   # Type ::= "YARN" | "NUMBR" | "NUMBAR" | "TROOF" | "NOOB"
   parseType: ->
     type = @_consume 'keyword'
-    if type not of window.LOLCoffee.DEFAULT_VALUES then @_error 'Unknown type'
+    if type not of DEFAULT_VALUES then @_error 'Unknown type'
     return type
 
   # Literal ::= STRING | INT | FLOAT | "WIN" | "FAIL" | "NOOB"
@@ -437,14 +445,14 @@ class Parser
   # UnaryExpression ::= UNARY_OPERATOR Expression
   parseUnaryExpression: ->
     operator = @_consume 'keyword'
-    if operator not in window.LOLCoffee.UNARY_OPERATORS
+    if operator not in UNARY_OPERATORS
       @_error 'Unknown unary operator: ' + operator
     return new AST.UnaryExpression operator, @parseExpression()
 
   # BinaryExpression ::= BINARY_OPERATOR Expression ["AN"] Expression
   parseBinaryExpression: ->
     operator = @_consume 'keyword'
-    if operator not in window.LOLCoffee.BINARY_OPERATORS
+    if operator not in BINARY_OPERATORS
       @_error 'Unknown binary operator: ' + operator
 
     left = @parseExpression()
@@ -457,7 +465,7 @@ class Parser
   #                          ("MKAY" | (?= ENDLINE))
   parseInfinitaryExpression: ->
     operator = @_consume 'keyword'
-    if operator not in window.LOLCoffee.INFINITARY_OPERATORS
+    if operator not in INFINITARY_OPERATORS
       @_error 'Unknown infinitary operator: ' + operator
 
     args = until @_nextIs('keyword', 'MKAY') or @_nextIs('endline')
@@ -544,5 +552,5 @@ class Parser
     throw new ParserError line, message
 
 # Exports.
-window.LOLCoffee.Parser = Parser
-window.LOLCoffee.ParserError = ParserError
+@LOLCoffee.Parser = Parser
+@LOLCoffee.ParserError = ParserError

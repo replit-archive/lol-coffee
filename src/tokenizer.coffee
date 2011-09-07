@@ -23,7 +23,12 @@ Example usage:
 Provides:
   LOLCoffee.Tokenizer
   LOLCoffee.TokenizerError
+
+Requires:
+  LOLCoffee.KEYWORDS
 ###
+
+KEYWORDS = @LOLCoffee.KEYWORDS
 
 # Regular expressions for various token types.
 INT_REGEX = /^-?\d+/
@@ -52,7 +57,7 @@ STRING_REGEX = ///
   "                  # Ending string quote.
 ///
 # Expand spaces to any non-newline whitespace and escape question marks.
-KEYWORDS = for word in window.LOLCoffee.KEYWORDS
+KEYWORDS = for word in KEYWORDS
   word.replace(/\?/g, '\\?').replace /\s/g, '[ \\t\\v]+'
 KEYWORD_REGEX = new RegExp "^(#{KEYWORDS.join '|'})(?=$|\\b|\\W)"
 
@@ -137,5 +142,5 @@ class Tokenizer
     throw new TokenizerError @line_index, message
 
 # Exports.
-window.LOLCoffee.Tokenizer = Tokenizer
-window.LOLCoffee.TokenizerError = TokenizerError
+@LOLCoffee.Tokenizer = Tokenizer
+@LOLCoffee.TokenizerError = TokenizerError
