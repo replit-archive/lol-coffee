@@ -11,3 +11,7 @@ except for the following deviations:
 5. String length, using `LENGZ OF <string>`.
 6. The ASCII code of the first character of a string, using `ORDZ OF <string>`.
 7. Convertion of ASCII codes to a string, using `CHARZ OF <string>`.
+
+### License
+
+LOLCoffee is available under the MIT license.
