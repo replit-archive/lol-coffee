@@ -255,6 +255,7 @@ class Expression extends Node
 class CallExpression extends Expression
   constructor: (@func_name, @args) ->
   codegen: (context) ->
+    @args.reverse()
     for arg in @args
       arg.codegen context
     context.emit new Instructions.Call @func_name, @args.length
