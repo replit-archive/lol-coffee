@@ -287,6 +287,7 @@ class Call
     machine.frames.push new Frame @func_name, machine.instruction_ptr
     for _ in [0...@args_count]
       machine.getStack().push old_stack.pop()
+    machine.getStack().reverse()
     machine.instruction_ptr = machine.functions[@func_name]
 
 # A return instruction. Pops the return value and the top frame, jumps to the
