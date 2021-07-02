@@ -1,4 +1,4 @@
-#LOLCoffee
+# LOLCoffee
 
 A REPL-friendly LOLCODE compiler and virtual machine written in CoffeeScript.
 Strictly implements the [LOLCODE 1.2 spec](http://lolcode.com/specs/1.2),
